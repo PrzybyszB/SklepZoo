@@ -2,7 +2,7 @@ from flask import Flask, render_template, flash, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 # from sites import sites
 from datetime import datetime
-from webforms import LoginForm, UserForm, PasswordForm, ProductForm
+from webforms import LoginForm, UserForm, ProductForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 
@@ -10,6 +10,7 @@ app = Flask(__name__)
 
 #Add Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db' 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 
 #Secret Key!
 app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
@@ -34,7 +35,7 @@ def home():
     return render_template("index.html")
 
 #Create User add function
-@app.route('/user/add', methods=['GET', 'POST'])
+@app.route('/user_add', methods=['GET', 'POST'])
 def add_user():
     name = None
     form = UserForm()
@@ -116,25 +117,37 @@ def dashboard():
                                    name_to_update = name_to_update,
                                    id = id)
 
-#Create Add Product Page
-@app.route("/add_product" ,methods=['GET', 'POST'])
+# Create Add Product Page
+# @app.route('/add-product' ,methods=['GET', 'POST'])
+# def add_product():
+#     product_name = request.form.get('product_name')
+#     form = ProductForm()
+#     print("zrobiłem się 1")
+#     if form.validate_on_submit():
+#         print("zrobiłem się 2")
+#         product_name = form.product_name.data
+#         form.product_name = ''
+#         print("zrobiłem się 3")
+#     print("zrobiłem się 4")
+#     return render_template('add_product.html',product_name = product_name,
+#                                                 form=form )
+
+@app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
-    product_name = None
+    product_name = None #request.form.get('product_name')
     form = ProductForm()
     if form.validate_on_submit():
-        product = Products.query.filter_by(email=form.email.data).first()
+        product = Products.query.filter_by(product_name=form.product_name.data).first()
         if product is None:
             product = Products(product_name=form.product_name.data,
-                         id = form.id.data, 
-                         producent = form.producent.data,)
+                               cost = form.cost.data,
+                                producent = form.producent.data)
             db.session.add(product)
             db.session.commit()
         product_name = form.product_name.data
         form.product_name.data = ''
-        form.id.data = ''
         form.cost.data = ''
         form.producent.data = ''
-        form.data_added.data = ''
         flash("Product Added Successfully")
     our_products = Products.query.order_by(Products.data_added)
     return render_template('add_product.html', 
@@ -196,13 +209,28 @@ class Users(db.Model, UserMixin):
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(200), nullable=False)
-    cost = db.Column(db.Integer, primary_key=True)
+    cost = db.Column(db.Integer, nullable=False)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Create A String
     def __repr__(self):
         return '<Name %r>' % self.name
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    #TODO LIST
+    # Zrobić możliwość dodawania produktu (zeby mozna byulo wpisywac i dodac), baze danych produktów

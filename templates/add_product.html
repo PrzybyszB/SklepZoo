@@ -1,33 +1,74 @@
 {% extends 'base.html' %}
 
 {% block content %}
-    
+{% for message in
+  get_flashed_messages() %}
+  
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+{% endfor %}
+  
+{% if product_name %}
+      <h1>Product Added!</h1>
+      <br/>
+      <br/>
+      
+{% else %}   
    
-        <h2>Wprowadź produkt</h2>
-        <br/>
-        <div class="card">
-            <div class="card-header">
-                Etykieta Produktu
-            </div>
-            <div class="card-body">
-              <p class="card-text">    
-                <strong>Nazwa Produktu:</strong>
-                <br/>
-                <strong>ID:</strong>
-                <br/>
-                <strong>Producent:</strong>
-                <br/>
-                <strong>Koszt:</strong>
-                <br/>
-                <strong>Data dodania:</strong></p>
-              <a href="{{ url_for('products') }}" class="btn btn-secondary btn-sm">Dodaj Produkt</a>
-              
-            </div>
-          </div>
-    
-    
-    </br></br></br>
-    
+    <h2>Wprowadź produkt</h2>
+    <br/>
+      <div class="card">
+          <div class="card-header">
+              Etykieta Produktu
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <p class="card-text">
+            {{ form.hidden_tag() }} 
+
+            <strong>{{ form.product_name.label(class="form-label") }}</strong>
+            {{ form.product_name( class="form-control") }}
+            <br/>
+            <strong>{{ form.producent.label(class="form-label") }}</strong>
+            {{ form.producent( class="form-control") }}
+            <br/>
+            <strong>{{ form.cost.label(class="form-label") }}</strong>
+            {{ form.cost( class="form-control") }}
+            </br>
+            {{ form.submit(class="btn btn-secondary") }}
+
+          </form>
+      </div>
+{% endif %}
+
+Produkty
+
+<table class="table table-hover table-bordered table-striped">
+    {% for our_product in our_products %}
+        <tr>
+        <td>
+        {{ our_product.id }}.
+        {{ our_product.product_name }}</a> -
+        {{ our_product.producent }} - 
+        {{ our_product.cost }} -
+        {{ our_product.data_added }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    </table>
 
 
+
+
+
+{% if form.product_name.errors %}
+    <ul class="errors">
+    {% for error in form.name.errors %}
+        <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
 {% endblock %}

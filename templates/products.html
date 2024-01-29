@@ -5,6 +5,20 @@
 
 Produkty
 
+<table class="table table-hover table-bordered table-striped">
+    {% for our_product in our_products %}
+        <tr>
+        <td>
+        {{ our_product.id }}.
+        {{ our_product.product_name }}</a> -
+        {{ our_product.producent }} - 
+        {{ our_product.cost }} -
+        {{ our_product.data_added }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    </table>
 
 
 {% endblock %}

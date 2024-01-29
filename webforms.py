@@ -1,7 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, IntegerField
 from wtforms.validators import DataRequired, EqualTo, Length
-from wtforms.widgets import TextArea
 
 
 
@@ -30,10 +29,8 @@ class PasswordForm(FlaskForm):
 
 #Create a Product Form Class
 class ProductForm(FlaskForm):
-    product_name = StringField("Product Name", validators=[DataRequired()])
-    id = IntegerField("ID", validators=[DataRequired()], widget=TextArea())
-    cost = IntegerField("COST", validators=[DataRequired()], widget=TextArea())
+    product_name = StringField("Nazwa Produktu", validators=[DataRequired()])
+    cost = IntegerField("Koszt", validators=[DataRequired()])
     producent = StringField("Producent", validators=[DataRequired()])
-    data_added = StringField("Data added", validators=[DataRequired()])
-    submit = SubmitField("Submit")
-
+    data_added = StringField("Data dodania", validators=[DataRequired()])
+    submit = SubmitField("Dodaj Produkt")

@@ -15,13 +15,8 @@ get_flashed_messages() %}
     <h1>User Added!</h1>
     <br/>
     <br/>
-<table class="table table-hover table-bordered table-striped">
-
-</table>
-
+    
 {% else %}
-    <h1>User List:</h1>
-    <br/>
 <div class="shadow p-3 mb-5 bg-body-tertiary rounded">
     <form method="POST">
         {{ form.hidden_tag() }}
@@ -52,9 +47,6 @@ get_flashed_messages() %}
     </form>
 </div>
 </br></br></br>
-<table class="table table-hover table-bordered table-striped">
-
-</table>
 {% endif %}
 
 {% endblock %}
