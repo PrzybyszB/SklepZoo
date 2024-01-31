@@ -3,7 +3,6 @@ from wtforms import StringField, SubmitField, PasswordField, BooleanField, Valid
 from wtforms.validators import DataRequired, EqualTo, Length
 
 
-
 #Create Login Form
 class LoginForm(FlaskForm):
     username = StringField("Username", validators =[DataRequired()])
@@ -32,5 +31,4 @@ class ProductForm(FlaskForm):
     product_name = StringField("Nazwa Produktu", validators=[DataRequired()])
     cost = IntegerField("Koszt", validators=[DataRequired()])
     producent = StringField("Producent", validators=[DataRequired()])
-    data_added = StringField("Data dodania", validators=[DataRequired()])
     submit = SubmitField("Dodaj Produkt")
