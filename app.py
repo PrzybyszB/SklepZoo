@@ -5,6 +5,8 @@ from datetime import datetime
 from webforms import LoginForm, UserForm, ProductForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
+# from db_models import Users, Products
+
 
 app = Flask(__name__)
 
@@ -98,7 +100,6 @@ def dashboard():
     if request.method == "POST":
         name_to_update.name = request.form['name']
         name_to_update.email = request.form['email']
-        name_to_update.favorite_color = request.form['favorite_color']
         name_to_update.username = request.form['username']
         try:
             db.session.commit()
@@ -117,26 +118,11 @@ def dashboard():
                                    name_to_update = name_to_update,
                                    id = id)
 
-# Create Add Product Page
-# @app.route('/add-product' ,methods=['GET', 'POST'])
-# def add_product():
-#     product_name = request.form.get('product_name')
-#     form = ProductForm()
-#     print("zrobiłem się 1")
-#     if form.validate_on_submit():
-#         print("zrobiłem się 2")
-#         product_name = form.product_name.data
-#         form.product_name = ''
-#         print("zrobiłem się 3")
-#     print("zrobiłem się 4")
-#     return render_template('add_product.html',product_name = product_name,
-#                                                 form=form )
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
     product_name = None #request.form.get('product_name')
     form = ProductForm()
-    print(form.errors)
     if form.validate_on_submit():
         product = Products.query.filter_by(product_name=form.product_name.data).first()
         if product is None:
@@ -157,12 +143,11 @@ def add_product():
                            our_products=our_products)
 
     
-
-
-
 @app.route('/products', methods=['GET', 'POST'])
 def products():
-    return render_template('products.html')
+    our_products = Products.query.order_by(Products.data_added)
+    return render_template('products.html', 
+                           our_products=our_products)
 
 
 @app.route('/sucha_karma', methods=['GET', 'POST'])
@@ -178,6 +163,40 @@ def mokra_karma():
 @app.route('/zabawki', methods=['GET', 'POST'])
 def zabawki():
     return render_template('zabawki.html')
+
+
+@app.route('/user-list', methods=['GET', 'POST'])
+def user_list():
+    our_users = Users.query.order_by(Users.email)
+    return render_template('user_list.html',
+                           our_users=our_users)
+
+@app.route('/update/<int:id>', methods=['GET', 'POST'])
+@login_required
+def update(id):
+    form = UserForm()
+    name_to_update = Users.query.get_or_404(id)
+    if request.method == "POST":
+        name_to_update.name = request.form['name']
+        name_to_update.email = request.form['email']
+        name_to_update.username = request.form['username']
+        try:
+            db.session.commit()
+            flash("Users Updated Successfully")
+            return render_template('update.html',
+                                   form=form,
+                                   name_to_update = name_to_update)
+        except:
+            flash("Error ! Try again")
+            return render_template('update.html',
+                                   form = form,
+                                   name_to_update = name_to_update)
+    else:
+        return render_template('update.html',
+                                   form = form,
+                                   name_to_update = name_to_update,
+                                   id = id)
+
 
 
 
@@ -274,5 +293,7 @@ praktyka
 
 
     #TODO LIST
-    # Zrobić możliwość dodawania produktu (zeby mozna byulo wpisywac i dodac), baze danych produktów
-    # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów)
+
+    # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
+    # Zająć się kategoriami produktów, żeby po dodaniu była możliwość dodania do danej kategorii
+    # Zająć się koszykiem produktów
