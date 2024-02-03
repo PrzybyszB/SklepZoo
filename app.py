@@ -1,11 +1,12 @@
 from flask import Flask, render_template, flash, request, redirect, url_for
+from flask_migrate import Migrate
+from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
-# from sites import sites
 from datetime import datetime
 from webforms import LoginForm, UserForm, ProductForm
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 # from db_models import Users, Products
+# from sites import sites
 
 
 app = Flask(__name__)
@@ -19,6 +20,7 @@ app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wje
 
 # Initialize The Database
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
 
 
 #Flask_Login Stuff
@@ -121,7 +123,7 @@ def dashboard():
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
-    product_name = None #request.form.get('product_name')
+    product_name = None
     form = ProductForm()
     if form.validate_on_submit():
         product = Products.query.filter_by(product_name=form.product_name.data).first()
@@ -226,12 +228,18 @@ class Users(db.Model, UserMixin):
     def __repr__(self):
         return '<Name %r>' % self.name
 
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category_name =db.Column(db.String(50), unique=True, nullable=False)
+
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(200), nullable=False)
     cost = db.Column(db.Integer, nullable=False)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
+    category = db.relationship('Category', backref=db.backref('products', lazy=True))
 
     # Create A String
     def __repr__(self):
