@@ -36,6 +36,14 @@
             <br/>
             <strong>{{ form.cost.label(class="form-label") }}</strong>
             {{ form.cost( class="form-control") }}
+            <br/>
+            <strong>{{ form.category_name.label(class="form-label") }}</strong>
+            {{ form.category_name( class="form-control") }}
+            {% if category_name == 'Sucha Karma' %} 
+            Sucha Karma
+            {% else %}
+            Zabawki
+            {% endif %}
             </br>
             {{ form.submit(class="btn btn-secondary") }}
 

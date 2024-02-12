@@ -1,6 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, IntegerField
+from wtforms import StringField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField
 from wtforms.validators import DataRequired, EqualTo, Length
+
+
 
 
 #Create Login Form
@@ -32,3 +34,12 @@ class ProductForm(FlaskForm):
     cost = IntegerField("Koszt", validators=[DataRequired()])
     producent = StringField("Producent", validators=[DataRequired()])
     submit = SubmitField("Dodaj Produkt")
+    category_name = SelectField(u'Kategoria', choices=[('SUCHA_KARMA', 'Sucha Karma'), 
+                                                       ('MOKRA_KARMA', 'Mokra Karma'),
+                                                        ('xd', 'Zabawki')])
+                                                        #('category.id', 'category.category_name'))
+
+
+class CategoryForm(FlaskForm):
+    category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
+    submit = SubmitField("Dodaj Kategorie")

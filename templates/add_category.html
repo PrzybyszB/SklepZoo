@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% for message in
+    get_flashed_messages() %}
+    
+      <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+{% endfor %}
+
+{% if product_name %}
+  <h1>Category Added!</h1>
+  <br/>
+  <br/>
+  
+{% else %}   
+
+<h2>Wprowadź Kategorie</h2>
+<br/>
+
+<form method="POST">
+    {{ form.csrf_token }}
+    {{ form.category_name.label(class="form-label") }}
+    {{ form.category_name( class="form-control") }}
+    <br/>
+    {{ product_id }}
+    {{ product_id }}
+    <br/>
+
+
+    {{ form.submit(class="btn btn-secondary") }}
+
+</form>
+
+{% endif %}
+<br/><br/><br/>
+
+<h2>Kategorie</h2>
+
+<table class="table table-hover table-bordered table-striped">
+    {% for categories in category_list %}
+        <tr>
+        <td>
+        {{ categories.category_name }}.
+
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+
+
+
+{% endblock %}

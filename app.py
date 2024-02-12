@@ -3,8 +3,10 @@ from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from webforms import LoginForm, UserForm, ProductForm
+from webforms import LoginForm, UserForm, ProductForm, CategoryForm
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import relationship
+
 # from db_models import Users, Products
 # from sites import sites
 
@@ -13,7 +15,8 @@ app = Flask(__name__)
 
 #Add Database
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///FirstDataBase.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://pbartosz:1q2w3e4r5t6Y.@localhost/FirstDataBase'
+
 
 #Secret Key!
 app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
@@ -21,6 +24,7 @@ app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wje
 # Initialize The Database
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
+
 
 
 #Flask_Login Stuff
@@ -120,6 +124,27 @@ def dashboard():
                                    name_to_update = name_to_update,
                                    id = id)
 
+@app.route('/add-category' ,methods=['GET', 'POST'])
+def add_category():
+    product_id = Products.id
+    category_name = None
+    form = CategoryForm()
+    if form.validate_on_submit():
+        check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
+        if check_exist_category is None:
+            new_category = Category(category_name = form.category_name)
+            
+            db.session.add(new_category)
+            db.session.commit()
+        category_name = form.category_name.data
+        form.category_name = ''
+        flash("Category Added Successfully")
+    category_list = Category.query.order_by(Category.category_name)
+    return render_template('add_category.html', 
+                           form=form,
+                           category_name = category_name,
+                           categories_list = category_list,
+                           product_id = product_id)
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
@@ -131,6 +156,7 @@ def add_product():
             product = Products(product_name=form.product_name.data,
                                cost = form.cost.data,
                                 producent = form.producent.data)
+            
             db.session.add(product)
             db.session.commit()
         product_name = form.product_name.data
@@ -229,8 +255,9 @@ class Users(db.Model, UserMixin):
         return '<Name %r>' % self.name
 
 class Category(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category_name =db.Column(db.String(50), unique=True, nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
 
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -238,9 +265,8 @@ class Products(db.Model):
     cost = db.Column(db.Integer, nullable=False)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
-    category = db.relationship('Category', backref=db.backref('products', lazy=True))
-
+    category = db.relationship('Category', backref='products', lazy=True)
+    
     # Create A String
     def __repr__(self):
         return '<Name %r>' % self.name
@@ -302,6 +328,13 @@ praktyka
 
     #TODO LIST
 
+    # JAK DZIAŁA RELATIONSHIP/Foreign key/jak stworzyć tabele z pustą/zmienna kolumną.
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
-    # Zająć się kategoriami produktów, żeby po dodaniu była możliwość dodania do danej kategorii
     # Zająć się koszykiem produktów
+    # ORM ogarnać, mysql,
+
+
+
+
+# DO BYKA
+# Co to token crf
