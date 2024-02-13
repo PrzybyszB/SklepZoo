@@ -25,8 +25,7 @@
     {{ form.category_name.label(class="form-label") }}
     {{ form.category_name( class="form-control") }}
     <br/>
-    {{ product_id }}
-    {{ product_id }}
+
     <br/>
 
 
@@ -43,7 +42,8 @@
     {% for categories in category_list %}
         <tr>
         <td>
-        {{ categories.category_name }}.
+        {{ categories.category_id }}
+        {{ categories.category_name }}
 
         </br>
         </td>

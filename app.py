@@ -124,27 +124,25 @@ def dashboard():
                                    name_to_update = name_to_update,
                                    id = id)
 
-@app.route('/add-category' ,methods=['GET', 'POST'])
+@app.route('/add_category' ,methods=['GET', 'POST'])
 def add_category():
-    product_id = Products.id
     category_name = None
     form = CategoryForm()
     if form.validate_on_submit():
         check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
         if check_exist_category is None:
-            new_category = Category(category_name = form.category_name)
+            new_category = Category(category_name = form.category_name.data)
             
             db.session.add(new_category)
             db.session.commit()
         category_name = form.category_name.data
-        form.category_name = ''
+        form.category_name.data = ''
         flash("Category Added Successfully")
-    category_list = Category.query.order_by(Category.category_name)
+    category_list = Category.query.order_by(Category.category_id)
     return render_template('add_category.html', 
                            form=form,
                            category_name = category_name,
-                           categories_list = category_list,
-                           product_id = product_id)
+                           category_list = category_list)
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
@@ -255,9 +253,9 @@ class Users(db.Model, UserMixin):
         return '<Name %r>' % self.name
 
 class Category(db.Model):
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    category_id = db.Column(db.Integer, primary_key=True, index=True)
     category_name =db.Column(db.String(50), unique=True, nullable=False)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    products = db.relationship('Products', backref='category', lazy=True)
 
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -265,7 +263,9 @@ class Products(db.Model):
     cost = db.Column(db.Integer, nullable=False)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    category = db.relationship('Category', backref='products', lazy=True)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
+    
+    
     
     # Create A String
     def __repr__(self):
@@ -328,13 +328,14 @@ praktyka
 
     #TODO LIST
 
-    # JAK DZIAŁA RELATIONSHIP/Foreign key/jak stworzyć tabele z pustą/zmienna kolumną.
+    # Dodać produkty do bazy danych i przypisać im kategorie
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     # Zająć się koszykiem produktów
-    # ORM ogarnać, mysql,
+
 
 
 
 
 # DO BYKA
 # Co to token crf
+# ORM ogarnać, mysql,
