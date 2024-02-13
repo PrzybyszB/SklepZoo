@@ -146,6 +146,7 @@ def add_category():
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
+    # category_id = Products.category_id
     product_name = None
     form = ProductForm()
     if form.validate_on_submit():
@@ -153,7 +154,8 @@ def add_product():
         if product is None:
             product = Products(product_name=form.product_name.data,
                                cost = form.cost.data,
-                                producent = form.producent.data)
+                                producent = form.producent.data,
+                                category_id = form.category_id.data)
             
             db.session.add(product)
             db.session.commit()
@@ -161,6 +163,7 @@ def add_product():
         form.product_name.data = ''
         form.cost.data = ''
         form.producent.data = ''
+        form.category_id.data = ''
         flash("Product Added Successfully")
     our_products = Products.query.order_by(Products.data_added)
     return render_template('add_product.html', 
@@ -328,7 +331,7 @@ praktyka
 
     #TODO LIST
 
-    # Dodać produkty do bazy danych i przypisać im kategorie
+    
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     # Zająć się koszykiem produktów
 
@@ -339,3 +342,4 @@ praktyka
 # DO BYKA
 # Co to token crf
 # ORM ogarnać, mysql,
+# jak zrobic zeby id produktów sie resetowało

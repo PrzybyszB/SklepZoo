@@ -34,9 +34,9 @@ class ProductForm(FlaskForm):
     cost = IntegerField("Koszt", validators=[DataRequired()])
     producent = StringField("Producent", validators=[DataRequired()])
     submit = SubmitField("Dodaj Produkt")
-    category_name = SelectField(u'Kategoria', choices=[('SUCHA_KARMA', 'Sucha Karma'), 
-                                                       ('MOKRA_KARMA', 'Mokra Karma'),
-                                                        ('xd', 'Zabawki')])
+    category_id = SelectField(u'Kategoria', choices=[('1', 'Sucha Karma'), 
+                                                       ('2', 'Mokra Karma'),
+                                                        ('3', 'Zabawki')])
                                                         #('category.id', 'category.category_name'))
 
 
