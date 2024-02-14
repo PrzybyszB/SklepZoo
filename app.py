@@ -181,17 +181,23 @@ def products():
 
 @app.route('/sucha_karma', methods=['GET', 'POST'])
 def sucha_karma():
-    return render_template('sucha_karma.html')
+    dry_foods = Products.query.filter_by(category_id = 1 )
+    return render_template('sucha_karma.html', 
+                           dry_foods=dry_foods,)
 
 
 @app.route('/mokra_karma', methods=['GET', 'POST'])
 def mokra_karma():
-    return render_template('mokra_karma.html')
+    wet_foods = Products.query.filter_by(category_id = 2 )
+    return render_template('mokra_karma.html', 
+                           wet_foods=wet_foods,)
 
 
 @app.route('/zabawki', methods=['GET', 'POST'])
 def zabawki():
-    return render_template('zabawki.html')
+    toys = Products.query.filter_by(category_id = 3 )
+    return render_template('zabawki.html', 
+                           toys=toys,)
 
 
 @app.route('/user-list', methods=['GET', 'POST'])
@@ -202,9 +208,9 @@ def user_list():
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 @login_required
-def update(id):
+def update(user_id):
     form = UserForm()
-    name_to_update = Users.query.get_or_404(id)
+    name_to_update = Users.query.get_or_404(user_id)
     if request.method == "POST":
         name_to_update.name = request.form['name']
         name_to_update.email = request.form['email']
@@ -224,21 +230,64 @@ def update(id):
         return render_template('update.html',
                                    form = form,
                                    name_to_update = name_to_update,
-                                   id = id)
+                                   user_id = user_id)
+
+@login_required
+@app.route('/cart')
+def cart():
+    
+    # TODO SESSION tylko widok ze strony, jebac db 
+
+    # user_id = current_user.id
+    # order = Cart.query.filter_by(user_id=user_id).all()
+    # current_cart = []
+    # total_cost = 0
+    # # for item in order:
+    # #     items = Orders.query_filter_by(item.order_id)
+
+    # #     current_cart.append(items)
+    return render_template('cart.html')
+
+@login_required
+@app.route('/order', methods=["GET","POST"])
+def order():
+
+    # TODO ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
 
 
 
+    # Orders.cart_id = 1
+    # Orders.product_id =1
+    
+    # if current_user.is_authenticated:
+    #     user_id = current_user.id
+    #     cart_item = Orders.query.filter_by( user_id=user_id).first()
+    #     if cart_item:
+    #         cart_item.quantity_of_product += 1
+    #         db.session.add(cart_item)
+    #         db.session.commit()
+    #     else:
+    #         cart = Orders( user_id = user_id, quantity_of_product =1, product_id = 1, cart_id =1)
+    #         db.session.add(cart)
+    #         db.session.commit()
+    # else:
+    #     flash('You need to log in to add items to cart')
+    #     return redirect(url_for('login'))
+    # return redirect(url_for('cart'))
+    return render_template('order.html')
 
 #DB MODELS
 
 #Create Model
 class Users(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    Orders_relationship = db.relationship('Orders', backref='users', lazy=True)
+
+
     # Doing password stuff
     password_hash = db.Column(db.String(128))
     password_hash - db.Column(db.String(128))
@@ -258,18 +307,36 @@ class Users(db.Model, UserMixin):
 class Category(db.Model):
     category_id = db.Column(db.Integer, primary_key=True, index=True)
     category_name =db.Column(db.String(50), unique=True, nullable=False)
-    products = db.relationship('Products', backref='category', lazy=True)
+    products_relationship = db.relationship('Products', backref='category', lazy=True)
 
 class Products(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(200), nullable=False)
-    cost = db.Column(db.Integer, nullable=False)
+    cost = db.Column(db.Integer, nullable=True)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
+    order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
+
+
+class Orders(db.Model):
+    order_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False,)
+    order_data = db.Column(db.DateTime, default=datetime.utcnow)
+    total_cost = db.Column(db.Integer, nullable=False)
+    order_detail_relationship = db.relationship('Orders_detail', backref='orders', lazy=True)
+
+
+class Orders_detail(db.Model):
+    order_detail_id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=True,)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
+    quantity_of_product = db.Column(db.Integer, nullable=False)
     
-    
-    
+
+
+
+
     # Create A String
     def __repr__(self):
         return '<Name %r>' % self.name
@@ -331,15 +398,27 @@ praktyka
 
     #TODO LIST
 
-    
-    # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
+    # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
     # Zająć się koszykiem produktów
+    # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
+    # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
+    # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
+    # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
 
-
-
+# Pomysł byka na koszyk
+'''
+Robisz jakiś endpoint np /add-to-cart przyjmujący POST
+Na stronie robisz JavaScript który wykonuje asynchroniczny request (tj. taki który nie przeładowuje strony) tzn. AJAX
+endpoint /add-to-cart dostaje sesje usera (czy to możliwe?), produkt oraz ilość i dodaje mu te dane do jego słownika sesji
+endpoint zwraca JSON z aktualnym koszykiem usera
+'''
 
 
 # DO BYKA
-# Co to token crf
-# ORM ogarnać, mysql,
-# jak zrobic zeby id produktów sie resetowało
+
+
+
+
+
+# mcertyfikat SSL zeby po https lecialo
+# content pod seo  jak powinien wygladac

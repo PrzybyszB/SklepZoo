@@ -3,6 +3,29 @@
 {% block content %}
 
 
-MOKRA KARMA
+Mokra Karma
+</br>
+<table class="table table-hover table-bordered table-striped">  
+    {% for wet_food in wet_foods %}
+        <tr>
+        <td>
+        {{ wet_food.id }}.
+        {{ wet_food.product_name }}-
+        {{ wet_food.producent }} - 
+        {{ wet_food.cost }} -
+        {{ wet_food.data_added }}
+        {{ wet_food.category_id }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    </table>    <a href="{{ url_for('add_product') }}" class="btn btn-secondary btn-sm">Dodaj Produkt</a>
+    
+
+
+
+
+
+
 
 {% endblock %}
