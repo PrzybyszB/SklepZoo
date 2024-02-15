@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField
-from wtforms.validators import DataRequired, EqualTo, Length
+from wtforms.validators import DataRequired, EqualTo, Length, NumberRange
 
 
 
@@ -43,3 +43,8 @@ class ProductForm(FlaskForm):
 class CategoryForm(FlaskForm):
     category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
     submit = SubmitField("Dodaj Kategorie")
+
+class Orders_detail(FlaskForm):
+    quantity_of_products = IntegerField('Ilość', validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField('Dodaj do koszyka')
+

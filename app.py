@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, request, redirect, url_for
+from flask import Flask, render_template, flash, request, redirect, url_for, session
 from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
@@ -38,7 +38,7 @@ def load_user(user_id):
 
 #TODO LOGOWANIE, INICIACJE DATABASE python3 app.app_context()
 
-@app.route("/")
+@app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template("index.html")
 
@@ -101,7 +101,7 @@ def logout():
 @login_required
 def dashboard():
     form = UserForm()
-    id = current_user.id
+    id = current_user.user_id
     name_to_update = Users.query.get_or_404(id)
     if request.method == "POST":
         name_to_update.name = request.form['name']
@@ -206,6 +206,7 @@ def user_list():
     return render_template('user_list.html',
                            our_users=our_users)
 
+
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 @login_required
 def update(user_id):
@@ -232,21 +233,22 @@ def update(user_id):
                                    name_to_update = name_to_update,
                                    user_id = user_id)
 
+
+@app.route('/cart', methods=['GET', 'POST'])
 @login_required
-@app.route('/cart')
 def cart():
+    form = ProductForm()
+    cart_items = []
+    if 'cart' in session:
+        products_in_cart_ids = session['cart']
+        if products_in_cart_ids:
+            cart_items = Products.query.filter(Products.product_id.in_(products_in_cart_ids)).all()
+    if not cart_items:   
+        session['cart'] = []
+    return render_template("cart.html", form=form, cart_items=cart_items)
+    
     
     # TODO SESSION tylko widok ze strony, jebac db 
-
-    # user_id = current_user.id
-    # order = Cart.query.filter_by(user_id=user_id).all()
-    # current_cart = []
-    # total_cost = 0
-    # # for item in order:
-    # #     items = Orders.query_filter_by(item.order_id)
-
-    # #     current_cart.append(items)
-    return render_template('cart.html')
 
 @login_required
 @app.route('/order', methods=["GET","POST"])
@@ -287,6 +289,9 @@ class Users(db.Model, UserMixin):
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     Orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
+    # doing changes about user_id define, default is define as id in login stuff
+    def get_id(self):
+        return (self.user_id)
 
     # Doing password stuff
     password_hash = db.Column(db.String(128))

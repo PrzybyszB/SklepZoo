@@ -2,17 +2,17 @@
 
 {% block content %}
 
+<h1>Koszyk</h1>
 
-
-<h2>KOSZYK</h2>
-<br/>
-
-{{ current_user.id }}
-{{ order }}
-<br/><br/>
-
-
-{{ current_cart }}
+{% if not cart_items %}
+    <p>Koszyk jest pusty.</p>
+{% else %}
+    <ul>
+        {% for item in cart_items %}
+            <li>{{ item.name }} - {{ item.price }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
 
 

@@ -1,3 +1,4 @@
+
 <nav class="navbar navbar-expand-lg" style="background-color: #9ACD32;">
   <div class="container-fluid">
       <a class="navbar-brand" href="#">LOGO SKLEPU</a>
@@ -14,7 +15,9 @@
               <a class="nav-link" href="{{ url_for('logout') }}">Wyloguj</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('cart') }}">Koszyk</a>
+              <form method="POST">
+              <a class="nav-link" name="cart" href="{{ url_for('cart') }}">Koszyk</a>
+              </form>
             </li>
             {% else %}
             <li class="nav-item">
