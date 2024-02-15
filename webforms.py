@@ -44,7 +44,7 @@ class CategoryForm(FlaskForm):
     category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
     submit = SubmitField("Dodaj Kategorie")
 
-class Orders_detail(FlaskForm):
-    quantity_of_products = IntegerField('Ilość', validators=[DataRequired(), NumberRange(min=1)])
-    submit = SubmitField('Dodaj do koszyka')
+class Order_detailForm(FlaskForm):
+    quantity_of_product = IntegerField('Ilość', validators=[DataRequired(), NumberRange(min=1)])
+    submit = SubmitField("Dodaj do koszyka")
 

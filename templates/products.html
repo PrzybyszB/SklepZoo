@@ -16,10 +16,10 @@ Produkty
         {{ our_product.data_added }}
         {{ our_product.category_id }}
         </br>
+        <a href="{{ url_for('product') }}" class="btn btn-secondary btn-sm">Dodaj do koszyka</a>
         </td>
         </tr>
     {% endfor %}
     </table>
     <a href="{{ url_for('add_product') }}" class="btn btn-secondary btn-sm">Dodaj Produkt</a>
-
 {% endblock %}

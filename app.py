@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from webforms import LoginForm, UserForm, ProductForm, CategoryForm
+from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import relationship
 
@@ -235,23 +235,64 @@ def update(user_id):
 
 
 @app.route('/cart', methods=['GET', 'POST'])
-@login_required
 def cart():
-    form = ProductForm()
-    cart_items = []
+    cart_items = session['cart']
+    form = ProductForm()   
+    if not cart_items:
+        cart_items = []
+        session['cart'] = []
     if 'cart' in session:
         products_in_cart_ids = session['cart']
         if products_in_cart_ids:
             cart_items = Products.query.filter(Products.product_id.in_(products_in_cart_ids)).all()
-    if not cart_items:   
-        session['cart'] = []
     return render_template("cart.html", form=form, cart_items=cart_items)
     
-    
-    # TODO SESSION tylko widok ze strony, jebac db 
 
-@login_required
+@app.route('/product/<int:product_id>', methods=['GET', 'POST'])
+def product(product_id):
+    form1 = ProductForm()
+    form2 = Order_detailForm()
+    product = Products(product_id = 2, product_name ='Produkt1', cost = 11, producent="Producent1", data_added=datetime.utcnow(), category_id = 1)
+    if 'cart' not in session:
+        session['cart'] = []
+    if form2.validate_on_submit():
+        # quantity_of_product = Orders_detail(quantity_of_product = form2.quantity_of_product.data)
+        if 'cart' in session:
+            if not any(product.product_id in x for x in session['cart']):
+                session['cart'].append(product_id)
+            elif any(product.product_id in d for d in session['cart']):
+                flash("Ten produkt jest już w koszyku")
+                # for d in session['cart']:
+                #     d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
+        else:
+            session['cart'] = [{product.product_id: Order_detailForm.quantity_of_product.data}]
+        return redirect(url_for("cart", 
+                           product = product, 
+                           product_id=product_id,
+                           form1 = form1,
+                           form2 = form2))
+    return render_template("product.html",
+                           product = product, 
+                           product_id=product_id,
+                           form1 = form1,
+                           form2 = form2)
+    
+    
+    
+    # if form2.validate_on_submit():
+    #     if 'cart' in session:
+    #         if not any(product.product_name in d for d in session['cart']):
+    #             session['cart'].append({{product.product_name: form2.quantity_of_product.data}})
+    #         elif any(product.product_name in d for d in session['cart']):
+    #             for d in session['cart']:
+    #                 d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
+    #     else:
+    #         session['cart'] = [{product.product_name: Orders_detail.quantity_of_product.data}]
+    # return redirect(url_for('products', form1=form1, form2=form2, product=product))
+
+
 @app.route('/order', methods=["GET","POST"])
+@login_required
 def order():
 
     # TODO ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
@@ -322,7 +363,6 @@ class Products(db.Model):
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
     order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
-
 
 class Orders(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
@@ -403,19 +443,22 @@ praktyka
 
     #TODO LIST
 
+    # Ustawic cart session timeout - na np 1 dzien. Ogarnac zeby session sie nie resetowało co odswiezenie strony
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
-    # Zająć się koszykiem produktów
+    # Zająć się dodawaniem produktu do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
+    # JWT - tokeny/typy autoryzacji do ogarnięcia
+
 
 # Pomysł byka na koszyk
 '''
 Robisz jakiś endpoint np /add-to-cart przyjmujący POST
-Na stronie robisz JavaScript który wykonuje asynchroniczny request (tj. taki który nie przeładowuje strony) tzn. AJAX
-endpoint /add-to-cart dostaje sesje usera (czy to możliwe?), produkt oraz ilość i dodaje mu te dane do jego słownika sesji
-endpoint zwraca JSON z aktualnym koszykiem usera
+Na stronie robisz JavaScript który wykonuje asynchroniczny request (tj. taki który nie przeładowuje strony) 
+tzn. AJAX endpoint /add-to-cart dostaje sesje usera (czy to możliwe?), produkt oraz ilość i dodaje mu te dane 
+do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
 '''
 
 
