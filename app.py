@@ -236,11 +236,36 @@ def update(user_id):
 
 @app.route('/cart', methods=['GET', 'POST'])
 def cart():
+    form = Order_detailForm()
     cart = session.get('cart')
-    return render_template("cart.html", cart=cart,)
+    
+    return render_template("cart.html", cart=cart, form=form)
+
+@app.route('/update_cart', methods=['GET', 'POST'])
+def update_cart():
+
+    # TODO Quantity drugiego produktu nie jest przekazywane, ID idzie ładnie a quantity zapisuje sie pierwszego produktu tylko
+    if request.method == "POST":
+        cart = session.get('cart')
+        update = False
+        for item in cart:
+            product_id = item['product_id'] # int(request.form.get('product_id'))
+            quantity = int(request.form.get('quantity'))
+            if item['product_id'] == product_id:
+                if quantity != item['quantity']:
+                    item['quantity'] = quantity
+                    update = True
+                    break
+        if not update:
+            session['cart'] = cart
+        session['cart'] = cart
+        session.modified = True
+        return redirect(url_for('cart'))
+    else:
+        return redirect(url_for('cart'))
 
 @app.route('/product/<int:product_id>', methods=['GET', 'POST'])
-def product(product_id = 2):
+def product(product_id = 1):
     form1 = ProductForm()
     form2 = Order_detailForm()
     #product = Products.query.all()
@@ -269,34 +294,6 @@ def product(product_id = 2):
                                product=product, 
                                form2=form2, 
                                form1=form1,)
-    
-    
-    
-    
-    # if 'cart' not in session:
-    #     session['cart'] = []
-    # if form2.validate_on_submit():
-    #     # quantity_of_product = Orders_detail(quantity_of_product = form2.quantity_of_product.data)
-    #     if 'cart' in session:
-    #         if not any(product.product_id in x for x in session['cart']):
-    #             session['cart'].append(product_id)
-    #             # elif any(product.product_id in d for d in session['cart']):
-    #             #     flash("Ten produkt jest już w koszyku")
-    #             # for d in session['cart']:
-    #             #     d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
-    #     else:
-    #         session['cart'] = [{product.product_id: Order_detailForm.quantity_of_product.data}]
-    #     return redirect(url_for("cart", 
-    #                        product = product, 
-    #                        product_id=product_id,
-    #                        form1 = form1,
-    #                        form2 = form2))
-    # return render_template("product.html",
-    #                        product = product, 
-    #                        product_id=product_id,
-    #                        form1 = form1,
-    #                        form2 = form2)
-
 
 @app.route('/order', methods=["GET","POST"])
 @login_required
@@ -450,7 +447,7 @@ praktyka
 
     #TODO LIST
 
-
+    # Ustawić quantity w ten sposób aby moża było w koszyku dodawać i odejmować
     # Ustawic cart session timeout - na np 1 dzien. Ogarnac zeby session sie nie resetowało co odswiezenie strony
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
@@ -474,6 +471,6 @@ do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
 
 
 
-
+# DOCKER
 # mcertyfikat SSL zeby po https lecialo
 # content pod seo  jak powinien wygladac
