@@ -236,59 +236,66 @@ def update(user_id):
 
 @app.route('/cart', methods=['GET', 'POST'])
 def cart():
-    cart_items = session['cart']
-    form = ProductForm()   
-    if not cart_items:
-        cart_items = []
-        session['cart'] = []
-    if 'cart' in session:
-        products_in_cart_ids = session['cart']
-        if products_in_cart_ids:
-            cart_items = Products.query.filter(Products.product_id.in_(products_in_cart_ids)).all()
-    return render_template("cart.html", form=form, cart_items=cart_items)
-    
+    cart = session.get('cart')
+    return render_template("cart.html", cart=cart,)
 
 @app.route('/product/<int:product_id>', methods=['GET', 'POST'])
-def product(product_id):
+def product(product_id = 2):
     form1 = ProductForm()
     form2 = Order_detailForm()
-    product = Products(product_id = 2, product_name ='Produkt1', cost = 11, producent="Producent1", data_added=datetime.utcnow(), category_id = 1)
-    if 'cart' not in session:
-        session['cart'] = []
-    if form2.validate_on_submit():
-        # quantity_of_product = Orders_detail(quantity_of_product = form2.quantity_of_product.data)
-        if 'cart' in session:
-            if not any(product.product_id in x for x in session['cart']):
-                session['cart'].append(product_id)
-            elif any(product.product_id in d for d in session['cart']):
-                flash("Ten produkt jest już w koszyku")
-                # for d in session['cart']:
-                #     d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
-        else:
-            session['cart'] = [{product.product_id: Order_detailForm.quantity_of_product.data}]
-        return redirect(url_for("cart", 
-                           product = product, 
-                           product_id=product_id,
-                           form1 = form1,
-                           form2 = form2))
-    return render_template("product.html",
-                           product = product, 
-                           product_id=product_id,
-                           form1 = form1,
-                           form2 = form2)
+    #product = Products.query.all()
+    product = Products(product_id=product_id, product_name='Produkt1', cost=11, producent="Producent1", category_id=1)
+    
+    if request.method == "POST":
+        quantity = int(request.form.get('quantity_of_product'))
+        
+        # If session['cart] exist, u download variable. If "cart" doeas not exist in the session, u create empty list "
+        cart = session.get('cart', [])
+        # This line checkout, if cart is dict. If yes, it convert into list(key,value)
+        if isinstance(cart, dict):
+            cart = list(cart.values())
+        update = False
+        for item in cart:
+            if item['product_id'] == product.product_id:
+                item['quantity'] += quantity
+                update = True
+                break
+        if not update:
+            cart.append({'product_id': product.product_id, 'quantity': quantity})
+        session['cart'] = cart
+        return redirect(url_for("cart"))
+    else:
+        return render_template('product.html', 
+                               product=product, 
+                               form2=form2, 
+                               form1=form1,)
     
     
     
+    
+    # if 'cart' not in session:
+    #     session['cart'] = []
     # if form2.validate_on_submit():
+    #     # quantity_of_product = Orders_detail(quantity_of_product = form2.quantity_of_product.data)
     #     if 'cart' in session:
-    #         if not any(product.product_name in d for d in session['cart']):
-    #             session['cart'].append({{product.product_name: form2.quantity_of_product.data}})
-    #         elif any(product.product_name in d for d in session['cart']):
-    #             for d in session['cart']:
-    #                 d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
+    #         if not any(product.product_id in x for x in session['cart']):
+    #             session['cart'].append(product_id)
+    #             # elif any(product.product_id in d for d in session['cart']):
+    #             #     flash("Ten produkt jest już w koszyku")
+    #             # for d in session['cart']:
+    #             #     d.update((k, form2.quantity_of_product.data) for k, v in d.items() if k == product.product_name)
     #     else:
-    #         session['cart'] = [{product.product_name: Orders_detail.quantity_of_product.data}]
-    # return redirect(url_for('products', form1=form1, form2=form2, product=product))
+    #         session['cart'] = [{product.product_id: Order_detailForm.quantity_of_product.data}]
+    #     return redirect(url_for("cart", 
+    #                        product = product, 
+    #                        product_id=product_id,
+    #                        form1 = form1,
+    #                        form2 = form2))
+    # return render_template("product.html",
+    #                        product = product, 
+    #                        product_id=product_id,
+    #                        form1 = form1,
+    #                        form2 = form2)
 
 
 @app.route('/order', methods=["GET","POST"])
@@ -443,14 +450,14 @@ praktyka
 
     #TODO LIST
 
+
     # Ustawic cart session timeout - na np 1 dzien. Ogarnac zeby session sie nie resetowało co odswiezenie strony
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
-    # Zająć się dodawaniem produktu do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
+    # Zrobic autoryzacje
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
-    # JWT - tokeny/typy autoryzacji do ogarnięcia
 
 
 # Pomysł byka na koszyk
@@ -463,7 +470,7 @@ do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
 
 
 # DO BYKA
-
+# JWT - tokeny/typy autoryzacji do ogarnięcia
 
 
 

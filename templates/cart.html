@@ -3,18 +3,9 @@
 {% block content %}
 
 <h1>Koszyk</h1>
-{% if session['cart'] %}
-<ul>
-    {% for item in cart_items %}
-        <li>{{ item.name }} - {{ item.price }}</li>
-    {% endfor %}
-</ul>
-{% else %}
-
-Koszyk jest pusty
 
 
-{% endif %}
+{{ cart }} 
 
 
 

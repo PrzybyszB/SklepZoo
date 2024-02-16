@@ -14,11 +14,6 @@
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('logout') }}">Wyloguj</a>
             </li>
-            <li class="nav-item">
-              <form method="POST">
-              <a class="nav-link" name="cart" href="{{ url_for('cart') }}">Koszyk</a>
-              </form>
-            </li>
             {% else %}
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('add_user') }}">Rejestracja</a>
@@ -32,6 +27,9 @@
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('user_list') }}">Lista Userów</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" name="cart" href="{{ url_for('cart') }}">Koszyk</a>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
