@@ -2,11 +2,13 @@ from flask import Flask, render_template, flash, request, redirect, url_for, ses
 from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.datastructures import MultiDict
 from sqlalchemy.orm import relationship
-
+import re
+import json
 # from db_models import Users, Products
 # from sites import sites
 
@@ -41,6 +43,14 @@ def load_user(user_id):
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template("index.html")
+
+
+# Making session time 24h
+@app.before_request
+def make_session_time():
+    session.permanent = True
+    app.permanent_session_lifetime = timedelta(minutes=1440)
+
 
 #Create User add function
 @app.route('/user_add', methods=['GET', 'POST'])
@@ -237,32 +247,42 @@ def update(user_id):
 @app.route('/cart', methods=['GET', 'POST'])
 def cart():
     form = Order_detailForm()
-    cart = session.get('cart')
+    cart = session.get('cart', [])
     
     return render_template("cart.html", cart=cart, form=form)
 
-@app.route('/update_cart', methods=['GET', 'POST'])
-def update_cart():
 
-    # TODO Quantity drugiego produktu nie jest przekazywane, ID idzie ładnie a quantity zapisuje sie pierwszego produktu tylko
+@app.route('/update_cart', methods=['GET', 'POST'])
+def update_cart():    
     if request.method == "POST":
-        cart = session.get('cart')
-        update = False
-        for item in cart:
-            product_id = item['product_id'] # int(request.form.get('product_id'))
-            quantity = int(request.form.get('quantity'))
-            if item['product_id'] == product_id:
-                if quantity != item['quantity']:
-                    item['quantity'] = quantity
-                    update = True
-                    break
-        if not update:
-            session['cart'] = cart
+        cart = session.get('cart', [])
+
+        # Creating group using regex to sort our cart
+        pattern = re.compile(r"items\[(\d+)\]\[(quantity|product_id)\]")
+        cart_list = {}
+        for key in request.form.keys():
+            match = pattern.match(key)
+            if match:
+                index = int(match.group(1))
+                if index not in cart_list:
+                    cart_list[index] = {}
+                cart_list[index][match.group(2)] = ((key, request.form[key]))
+        
+        # Extract quantity of product from cart and change a value to quantity from sorting request.form
+        for index, product_details_items in sorted(cart_list.items(), key=lambda x: int(x[0])):
+            product_details = [product_details_items['quantity'], product_details_items['product_id']]
+            for quantity in product_details:
+                quantity = int(product_details_items['quantity'][1])
+                if quantity != cart[int(index)]['quantity']:
+                    cart[int(index)]['quantity'] = quantity
+        
+        #Saving up to date cart in session
         session['cart'] = cart
         session.modified = True
         return redirect(url_for('cart'))
     else:
         return redirect(url_for('cart'))
+
 
 @app.route('/product/<int:product_id>', methods=['GET', 'POST'])
 def product(product_id = 1):
@@ -296,13 +316,30 @@ def product(product_id = 1):
                                form1=form1,)
 
 @app.route('/order', methods=["GET","POST"])
-@login_required
 def order():
 
-    # TODO ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
-
-
-
+    # TODO 
+    # Ustawić żeby Columny w bazie danych Users mogły być NULL, zmienić, że przy rejestracji muszą być wypełnione
+    # sqlalchemy.exc.IntegrityError: (pymysql.err.IntegrityError) (1048, "Column 'username' cannot be null")
+    # ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
+    form = UserForm()
+    cart = session.get('cart')
+    user_email = None
+    if request.method == "POST":
+        #user = Users(user_id = 1, username = 'Bartek', name = 'Bartek', email = 'Bartek@test1.pl')
+        user_email = Users.query.filter_by(email = user_email).first()
+        if user_email is None:
+            user_email = Users(name=None,
+                        username = None, 
+                        email = form.email.data, 
+                        password_hash= None,
+                        user_id = 3)
+            
+            db.session.add(user_email)
+            db.session.commit()
+        user_email = form.email.data
+        return redirect(url_for("orders_detail/<str:user_email>"))
+    return render_template('order.html', cart = cart, form = form)
     # Orders.cart_id = 1
     # Orders.product_id =1
     
@@ -322,6 +359,16 @@ def order():
     #     return redirect(url_for('login'))
     # return redirect(url_for('cart'))
     return render_template('order.html')
+
+
+@app.route('/orders_detail/<str:user_email>', methods=["GET","POST"])
+def order_detail(user_email):
+    form = UserForm()
+    cart = session.get('cart')
+    user_email = Users.query.filter_by(user_emial = user_email).first()
+    return render_template("orders_detail.html", 
+                           form=form,
+                           cart=cart,)
 
 #DB MODELS
 
@@ -447,8 +494,7 @@ praktyka
 
     #TODO LIST
 
-    # Ustawić quantity w ten sposób aby moża było w koszyku dodawać i odejmować
-    # Ustawic cart session timeout - na np 1 dzien. Ogarnac zeby session sie nie resetowało co odswiezenie strony
+    # zrobić usera od łapy i ogarnąc order
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 

@@ -7,14 +7,15 @@
 
 <form method="POST" action="{{ url_for('update_cart') }}">
     {% for item in cart %}
-        <p>Product ID : {{ item['product_id'] }} . 
+        <p>Product ID : {{ item['product_id'] }} .
             <label for="">Quantity:</label>
-            <input type="number" name="quantity" value="{{ item['quantity'] }}" min="1" max="10">
-            <input type="hidden" name="product_id" value="{{ item['product_id'] }}">
+            <input type="number" name="items[{{loop.index0}}][quantity]" value="{{ item['quantity'] }}" min="1" max="10">
+            <input type="hidden" name="items[{{loop.index0}}][product_id]" value="{{ item['product_id'] }}">
         </p>
+
     {% endfor %}
     <button type="submit" class="btn btn-danger btn-sm">Update</button>
-
+    <a href="{{ url_for('order') }}" class="btn btn-primary btn-sm">Zamów</a>
 
 </form>
 </br>
