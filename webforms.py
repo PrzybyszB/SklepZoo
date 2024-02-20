@@ -15,17 +15,19 @@ class LoginForm(FlaskForm):
 
 #Create a User Form Class
 class UserForm(FlaskForm):
-    name =  StringField("Name", validators=[DataRequired()])
+    name =  StringField("Imię", validators=[DataRequired()])
     username = StringField("Username", validators=[DataRequired()])
     email =  StringField("Email", validators=[DataRequired()])
-    password_hash = PasswordField("Password", validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match!')])
-    password_hash2 = PasswordField("Confirm Password", validators=[DataRequired()])
+    last_name = StringField("Nazwisko", validators=[DataRequired()])
+    adress = StringField("Adres", validators=[DataRequired()])
+    password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match!')])
+    password_hash2 = PasswordField("Potwierdź hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 #Create a Password Form Class
 class PasswordForm(FlaskForm):
-    email =  StringField("What's Your Email", validators=[DataRequired()])
-    password_hash =  PasswordField("What's Your Password", validators=[DataRequired()])
+    email =  StringField("Email", validators=[DataRequired()])
+    password_hash =  PasswordField("Hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 #Create a Product Form Class
@@ -48,3 +50,10 @@ class Order_detailForm(FlaskForm):
     quantity_of_product = IntegerField('Ilość', validators=[DataRequired(), NumberRange(min=1)])
     submit = SubmitField("Dodaj do koszyka")
 
+
+class CustomerForm(FlaskForm):
+    email =  StringField("Email", validators=[DataRequired()]) 
+    name = StringField("Imię", validators=[DataRequired()]) 
+    last_name =StringField("Nazwisko", validators=[DataRequired()]) 
+    adress = StringField("Adres", validators=[DataRequired()]) 
+    submit = SubmitField("Dalej")

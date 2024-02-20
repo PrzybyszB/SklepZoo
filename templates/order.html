@@ -2,25 +2,29 @@
 
 {% block content %}
 
-
-<h1>Your products</h1>
-{% if user  %}
-
-
-KOSZYK {{ cart }}
-USER {{ user.email }}
-
-{% else %}
 <form method="POST">
-    {{ form.hidden_tag() }}
+<h1>Twoje dane</h1>
 
-    {{ form.email.label(class="form-label") }}
-    {{ form.email( class="form-control") }}
+    {{ customer_form.hidden_tag() }}
+
+    {{ customer_form.email.label(class="form-label") }}
+    {{ customer_form.email( class="form-control") }}
+    <br/>
+    {{ customer_form.name.label(class="form-label") }}
+    {{ customer_form.name( class="form-control") }}
     <br/>
 
-    {{ form.submit(class="btn btn-secondary") }}
+    {{ customer_form.last_name.label(class="form-label") }}
+    {{ customer_form.last_name( class="form-control") }}
+    <br/>
+
+    {{ customer_form.adress.label(class="form-label") }}
+    {{ customer_form.adress( class="form-control") }}
+    <br/>
+
+
+    {{ customer_form.submit(class="btn btn-secondary") }}
     
 </form>
-{% endif %}
 
 {% endblock %}

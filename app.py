@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm
+from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm, CustomerForm
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.datastructures import MultiDict
 from sqlalchemy.orm import relationship
@@ -319,56 +319,74 @@ def product(product_id = 1):
 def order():
 
     # TODO 
-    # Ustawić żeby Columny w bazie danych Users mogły być NULL, zmienić, że przy rejestracji muszą być wypełnione
-    # sqlalchemy.exc.IntegrityError: (pymysql.err.IntegrityError) (1048, "Column 'username' cannot be null")
     # ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
-    form = UserForm()
+    user_form = UserForm()
+    customer_form = CustomerForm()
     cart = session.get('cart')
     user_email = None
-    if request.method == "POST":
-        #user = Users(user_id = 1, username = 'Bartek', name = 'Bartek', email = 'Bartek@test1.pl')
-        user_email = Users.query.filter_by(email = user_email).first()
-        if user_email is None:
-            user_email = Users(name=None,
-                        username = None, 
-                        email = form.email.data, 
-                        password_hash= None,
-                        user_id = 3)
-            
-            db.session.add(user_email)
+    if request.method == "POST" or current_user.is_authenticated:
+        if current_user.is_authenticated:
+            user_email =  current_user.email
+        else:
+            user_email = None
+        if user_email:
+            return redirect(url_for("orders_detail", user_email=user_email))
+        elif customer_form.validate_on_submit():
+            customer_user = Customer(email = customer_form.email.data,
+                                  name = customer_form.name.data,
+                                  last_name = customer_form.last_name.data,
+                                  adress = customer_form.adress.data)
+            db.session.add(customer_user)
             db.session.commit()
-        user_email = form.email.data
-        return redirect(url_for("orders_detail/<str:user_email>"))
-    return render_template('order.html', cart = cart, form = form)
-    # Orders.cart_id = 1
-    # Orders.product_id =1
+            user_email = customer_form.email.data
+            return redirect(url_for("orders_detail", 
+                    user_email = user_email,))
+    return render_template('order.html', 
+                           cart = cart, 
+                           user_form = user_form, 
+                           customer_form = customer_form)
     
-    # if current_user.is_authenticated:
-    #     user_id = current_user.id
-    #     cart_item = Orders.query.filter_by( user_id=user_id).first()
-    #     if cart_item:
-    #         cart_item.quantity_of_product += 1
-    #         db.session.add(cart_item)
+    
+    
+    
+    
+    # user_form = UserForm()
+    # customer_form = CustomerForm()
+    # cart = session.get('cart')
+    # user_email = None
+    # if request.method == "POST" or current_user.is_authenticated:
+    #     user_email =  current_user.email if current_user.is_authenticated else None
+    #     if user_email:
+    #         return redirect(url_for("orders_detail", user_email=user_email))
+    #     elif customer_form.validate_on_submit():
+    #         customer_user = Customer(email = customer_form.email.data,
+    #                               name = customer_form.name.data,
+    #                               last_name = customer_form.last_name.data,
+    #                               adress = customer_form.adress.data)
+    #         db.session.add(customer_user)
     #         db.session.commit()
-    #     else:
-    #         cart = Orders( user_id = user_id, quantity_of_product =1, product_id = 1, cart_id =1)
-    #         db.session.add(cart)
-    #         db.session.commit()
-    # else:
-    #     flash('You need to log in to add items to cart')
-    #     return redirect(url_for('login'))
-    # return redirect(url_for('cart'))
-    return render_template('order.html')
+    #         user_email = customer_form.email.data
+    #         return redirect(url_for("orders_detail", 
+    #                 user_email = user_email,))
+    # return render_template('order.html', 
+    #                        cart = cart, 
+    #                        user_form = user_form, 
+    #                        customer_form = customer_form)
 
 
-@app.route('/orders_detail/<str:user_email>', methods=["GET","POST"])
-def order_detail(user_email):
-    form = UserForm()
+@app.route('/orders_detail/<user_email>', methods=["GET", "POST"])
+def orders_detail(user_email):
+    form = UserForm(request.form)
     cart = session.get('cart')
-    user_email = Users.query.filter_by(user_emial = user_email).first()
+    user = None
+    if request.method == "POST" and form.validate_on_submit():
+        user_email = form.email.data
+        user = Users.query.filter_by(email=user_email).first()
     return render_template("orders_detail.html", 
-                           form=form,
-                           cart=cart,)
+                           form=form, 
+                           cart=cart, 
+                           user_email=user_email, 
+                           user=user)
 
 #DB MODELS
 
@@ -377,7 +395,10 @@ class Users(db.Model, UserMixin):
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     name = db.Column(db.String(200), nullable=False)
+    last_name = db.Column(db.String(200), nullable=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
+    adress = db.Column(db.String(120), nullable=True)
+
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     Orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
@@ -429,9 +450,12 @@ class Orders_detail(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
     quantity_of_product = db.Column(db.Integer, nullable=False)
     
-
-
-
+class Customer(db.Model):
+    customer_id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=True, unique=True)
+    name = db.Column(db.String(120), nullable=False)
+    last_name = db.Column(db.String(120), nullable=False)
+    adress = db.Column(db.String(120), nullable=False)
 
     # Create A String
     def __repr__(self):
