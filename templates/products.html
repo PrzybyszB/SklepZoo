@@ -9,17 +9,18 @@ Produkty
     {% for our_product in our_products %}
         <tr>
         <td>
-        {{ our_product.id }}.
+        {{ our_product.product_id }}.
         {{ our_product.product_name }}-
         {{ our_product.producent }} - 
         {{ our_product.cost }} -
         {{ our_product.data_added }}
-        {{ our_product.category_id }}
-        </br>
-        <a href="{{ url_for('product') }}" class="btn btn-secondary btn-sm">Dodaj do koszyka</a>
+        {{ our_product.category_id }}       - 
+        <a href="{{ url_for('product', product_id= our_product.product_id) }}" class="btn btn-secondary btn-sm">Dodaj do koszyka</a>
         </td>
         </tr>
     {% endfor %}
     </table>
+    </br>
+    </br>
     <a href="{{ url_for('add_product') }}" class="btn btn-secondary btn-sm">Dodaj Produkt</a>
 {% endblock %}

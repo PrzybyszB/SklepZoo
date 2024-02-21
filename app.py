@@ -285,11 +285,11 @@ def update_cart():
 
 
 @app.route('/product/<int:product_id>', methods=['GET', 'POST'])
-def product(product_id = 1):
+def product(product_id):
     form1 = ProductForm()
     form2 = Order_detailForm()
-    #product = Products.query.all()
-    product = Products(product_id=product_id, product_name='Produkt1', cost=11, producent="Producent1", category_id=1)
+    product = Products.query.get_or_404(product_id)
+    # product = Products(product_id=product_id, product_name='Produkt1', cost=11, producent="Producent1", category_id=1)
     
     if request.method == "POST":
         quantity = int(request.form.get('quantity_of_product'))
@@ -318,8 +318,6 @@ def product(product_id = 1):
 @app.route('/order', methods=["GET","POST"])
 def order():
 
-    # TODO 
-    # ORDERS i ORDER DETAIL, sciagam dane z session, zatwierdzam i wpierdalam do bazy danych Orders i Order details
     user_form = UserForm()
     customer_form = CustomerForm()
     cart = session.get('cart')
@@ -345,48 +343,70 @@ def order():
                            cart = cart, 
                            user_form = user_form, 
                            customer_form = customer_form)
-    
-    
-    
-    
-    
-    # user_form = UserForm()
-    # customer_form = CustomerForm()
-    # cart = session.get('cart')
-    # user_email = None
-    # if request.method == "POST" or current_user.is_authenticated:
-    #     user_email =  current_user.email if current_user.is_authenticated else None
-    #     if user_email:
-    #         return redirect(url_for("orders_detail", user_email=user_email))
-    #     elif customer_form.validate_on_submit():
-    #         customer_user = Customer(email = customer_form.email.data,
-    #                               name = customer_form.name.data,
-    #                               last_name = customer_form.last_name.data,
-    #                               adress = customer_form.adress.data)
-    #         db.session.add(customer_user)
-    #         db.session.commit()
-    #         user_email = customer_form.email.data
-    #         return redirect(url_for("orders_detail", 
-    #                 user_email = user_email,))
-    # return render_template('order.html', 
-    #                        cart = cart, 
-    #                        user_form = user_form, 
-    #                        customer_form = customer_form)
 
 
 @app.route('/orders_detail/<user_email>', methods=["GET", "POST"])
 def orders_detail(user_email):
     form = UserForm(request.form)
     cart = session.get('cart')
-    user = None
-    if request.method == "POST" and form.validate_on_submit():
-        user_email = form.email.data
-        user = Users.query.filter_by(email=user_email).first()
+    # if request.method == "POST" and form.validate_on_submit():
+    all_product_cost = []
+    total_cost = 0
+
+    for item in cart:
+        product_id = int(item['product_id'])
+        product = Products.query.filter_by(product_id = product_id).first()
+        quantity = int(item['quantity'])
+        total_product_cost = product.cost * quantity
+        all_product_cost.append(total_product_cost)
+        print(quantity)
+        print(total_product_cost)
+        
+    for num in all_product_cost:
+        total_cost += num
+
+    user = Users.query.filter_by(email = user_email).first()
+    order = Orders(user_id = user.user_id,
+                       total_cost = total_cost )
+    db.session.add(order)
+    db.session.commit()
+
+    order_id = order.order_id
+    # TODO Jeżeli orders_detail jest potrzebny to mus być w loopie ?
+    # for item in cart:
+    #     product_id = int(item['product_id'])
+    #     product = Products.query.filter_by(product_id = product_id).first()
+    #     quantity = int(item['quantity'])
+    #     orders_detail = Orders_detail(order_id = order.order_id,
+    #                                 product_id = product_id,
+    #                                 quantity_of_product= quantity)
+    #     db.session.add(orders_detail)
+    #     db.session.commit()
+    orders_detail = Orders_detail(order_id = order.order_id,
+                                    product_id = product_id,
+                                    quantity_of_product= quantity)
+    db.session.add(orders_detail)
+    db.session.commit()
     return render_template("orders_detail.html", 
                            form=form, 
                            cart=cart, 
-                           user_email=user_email, 
-                           user=user)
+                           user_email=user_email,
+                           order_id = order_id )
+
+
+@app.route('/summary/<int:order_id>', methods=["GET", "POST"])
+def summary(order_id):
+    cart = session.get('cart')
+    order = Orders.query.get_or_404(order_id)
+    total_cost = order.total_cost
+    orders_list = Orders.query.order_by(Orders.order_id)
+    orders_detail_list = Orders_detail.query.all()
+    return render_template("summary.html", order = order, 
+                           total_cost = total_cost,
+                           cart = cart,
+                           orders_list = orders_list,
+                           orders_detail_list = orders_detail_list)
+
 
 #DB MODELS
 
@@ -518,7 +538,7 @@ praktyka
 
     #TODO LIST
 
-    # zrobić usera od łapy i ogarnąc order
+    # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
@@ -538,9 +558,11 @@ do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
 
 # DO BYKA
 # JWT - tokeny/typy autoryzacji do ogarnięcia
+# Orders detail list czy to potrzebne i czy dobrze printuje bo jest jeden rpodukt w summary
+# Ten orders detai jest chyba niepotrzebny bo wszystko sie przenosi za pomoca session, wtedy w order wjebać product_id i quantity_of_products
 
 
-
+# JWT TOKENY
 # DOCKER
 # mcertyfikat SSL zeby po https lecialo
 # content pod seo  jak powinien wygladac

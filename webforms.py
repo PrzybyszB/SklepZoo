@@ -39,8 +39,6 @@ class ProductForm(FlaskForm):
     category_id = SelectField(u'Kategoria', choices=[('1', 'Sucha Karma'), 
                                                        ('2', 'Mokra Karma'),
                                                         ('3', 'Zabawki')])
-                                                        #('category.id', 'category.category_name'))
-
 
 class CategoryForm(FlaskForm):
     category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])

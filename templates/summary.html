@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block content %}
+<form method="POST">
+KWOTA DO ZAPŁATY : {{ total_cost }}
+</br>
+Zamówienie ID : {{ order.order_id }}
+</br>
+Podsumowanie koszyka :
+<ul>
+  {% for item in cart %}
+    <li>Produkt ID: {{ item.product_id }}, Ilość: {{ item.quantity }}</li>
+  {% endfor %}
+</ul>
+</form>
+
+ORDERS
+<table class="table table-hover table-bordered table-striped">
+    {% for our_orders in orders_list %}
+        <tr>
+        <td>
+        ID : {{ our_orders.order_id }}.
+        User ID: {{ our_orders.user_id }}</a> - 
+        Data zamówienia : {{ our_orders.order_data }} - 
+        Koszt całkowit : {{ our_orders.total_cost }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    </table>
+
+
+
+ORDERS DETAIL
+<table class="table table-hover table-bordered table-striped">
+    {% for our_orders_detail in orders_detail_list %}
+        <tr>
+        <td>
+        ID : {{ our_orders_detail.order_detail_id }}.
+        Order ID : {{ our_orders_detail.order_id }}</a> -
+        Product ID : {{ our_orders_detail.product_id }} - 
+        Ilość produktu : {{ our_orders_detail.quantity_of_product }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+</table>
+
+
+
+
+{% endblock %}
