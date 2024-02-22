@@ -1,6 +1,8 @@
 from flask import Flask, render_template, flash, request, redirect, url_for, session
 from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
+from flask_user import roles_required
+from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm, CustomerForm
@@ -8,16 +10,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.datastructures import MultiDict
 from sqlalchemy.orm import relationship
 import re
-from flasgger import Swagger, LazyString, LazyJSONEncoder
-from flasgger import swag_from
 import stripe
-# from db_models import Users, Products
-# from sites import sites
+import os
 
 
 app = Flask(__name__)
-swagger = Swagger(app)
 
+
+# For payments
 public_key = "pk_test_TYooMQauvdEDq54NiTphI7jx"
 stripe.api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 
@@ -29,6 +29,17 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://pbartosz:1q2w3e4r5t6Y.@
 #Secret Key!
 app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
 
+# app.config['USER_EMAIL_SENDER_EMAIL'] = 'email@example.com'
+# app.config['MAIL_USERNAME'] = 'email@example.com'
+# app.config['MAIL_PASSWORD'] = 'password'
+# app.config['MAIL_DEFAULT_SENDER'] = '"MyApp" <noreply@example.com>'
+# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+# app.config['MAIL_PORT'] = '465'
+# app.config['MAIL_USE_SSL'] = True
+# app.config['CSRF_ENABLED'] = True
+# app.config['USER_APP_NAME'] = "AppName"
+
+
 # Initialize The Database
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
@@ -39,16 +50,39 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(int(user_id))
 
-#TODO LOGOWANIE, INICIACJE DATABASE python3 app.app_context()
 
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template("index.html")
 
+
+@app.route("/login_admin" ,methods=['GET', 'POST'])
+def login_admin():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = Admin.query.filter_by(username=form.username.data).first()
+        if user:
+            #check the hash
+            if check_password_hash(user.password_hash, form.password.data):
+                login_user(user)
+                flash("Login successfull")
+                return redirect(url_for('admin'))
+            else:
+                flash("Wrong password - Try again")
+        else:
+            flash("That admin doeasn't exist")
+    return render_template('login_admin.html', form=form)
+
+
+@app.route("/admin", methods=['GET', 'POST'])
+#@roles_required('admin')
+def admin():
+    return render_template("admin.html")
 
 # Making session time 24h
 @app.before_request
@@ -57,41 +91,9 @@ def make_session_time():
     app.permanent_session_lifetime = timedelta(minutes=1440)
 
 
-# @app.route('api/user_add', methods=['POST'])
-# def add_user(username, email, name, password_hash):
-# ....
-
 #Create User add function
 @app.route('/user_add', methods=['GET', 'POST'])
 def add_user():
-    """Example endpoint returning a list of colors by palette
-    This is using docstrings for specifications.
-    ---
-    parameters:
-      - name: add_user
-        in: path
-        type: string
-        enum: ['all', 'rgb', 'cmyk']
-        required: true
-        default: all
-    definitions:
-      Palette:
-        type: object
-        properties:
-          palette_name:
-            type: array
-            items:
-              $ref: '#/definitions/Color'
-      Color:
-        type: string
-    responses:
-      200:
-        description: A list of colors (may be filtered by palette)
-        schema:
-          $ref: '#/definitions/Palette'
-        examples:
-          rgb: ['red', 'green', 'blue']
-    """
     name = None
     form = UserForm()
     if form.validate_on_submit():
@@ -117,6 +119,7 @@ def add_user():
                            name=name,
                            our_users=our_users)
 
+
 #Create Login function
 @app.route("/login" ,methods=['GET', 'POST'])
 def login():
@@ -135,6 +138,7 @@ def login():
             flash("That user doeasn't exist")
     return render_template('login.html', form=form)
 
+
 #Create Log out function
 @app.route('/logout',methods=['GET', 'POST'])
 @login_required
@@ -142,6 +146,7 @@ def logout():
     logout_user()
     flash("U have been logged out!")
     return redirect(url_for('login'))
+
 
 #Create Dashboard Page
 @app.route('/dashboard',methods=['GET', 'POST'])
@@ -171,6 +176,7 @@ def dashboard():
                                    name_to_update = name_to_update,
                                    id = id)
 
+
 @app.route('/add_category' ,methods=['GET', 'POST'])
 def add_category():
     category_name = None
@@ -190,6 +196,7 @@ def add_category():
                            form=form,
                            category_name = category_name,
                            category_list = category_list)
+
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
 def add_product():
@@ -472,8 +479,8 @@ def final_order_info():
     return render_template('final_order_info.html')
 
 
-# chłop wybiera produkty -> dodaje je do koszyka -> przechodzi do płatności (cart summary) -> płaci | w obrębie jednej sesji
-# chłop sprawdza swoje zamówienia -> patrzy w historie zamówień (shopping history / moje zamówienia) | w bazie danych
+
+
 
 #DB MODELS
 
@@ -485,11 +492,10 @@ class Users(db.Model, UserMixin):
     last_name = db.Column(db.String(200), nullable=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
     adress = db.Column(db.String(120), nullable=True)
-
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     Orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
-    # doing changes about user_id define, default is define as id in login stuff
+    # Doing changes about user_id define, default is define as id in login stuff
     def get_id(self):
         return (self.user_id)
 
@@ -545,12 +551,53 @@ class Customer(db.Model):
     adress = db.Column(db.String(120), nullable=False)
     order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
 
+class Role(db.Model):
+    role_id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+
+class AdminRoles(db.Model):
+    user_role_id = db.Column(db.Integer(), primary_key=True)
+    admin_id = db.Column(db.Integer(), db.ForeignKey('admin.admin_id', ondelete='CASCADE'))
+    role_id = db.Column(db.Integer(), db.ForeignKey('role.role_id', ondelete='CASCADE'))
+
+class Admin(db.Model, UserMixin):
+    admin_id = db.Column(db.Integer, primary_key=True)                      # 2
+    username = db.Column(db.String(20), nullable=False, unique=True)        # admin
+    email = db.Column(db.String(120), nullable=False, unique=True)          # admin@email.com
+    roles = db.relationship('Role', secondary='admin_roles',                # password: admin123
+            backref=db.backref('admin', lazy='dynamic'))
+
+    # Doing password stuff
+    password_hash = db.Column(db.String(128))
+    password_hash - db.Column(db.String(128))
+
+    @property
+    def password(self):
+        raise AttributeError ('password is not readable attribute')
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash, password)
     # Create A String
     def __repr__(self):
         return '<Name %r>' % self.name
 
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
+
+
+
+
+
+
+
+
+
+
 ''' 
 SCHEMAT ZAKUPOWY
 
@@ -585,6 +632,16 @@ NORMALIZACJA
 # zamówienie_detal: 4, 2, 1, 2
 # zamówienie_detal: 5, 2, 2, 1
 
+Robisz jakiś endpoint np /add-to-cart przyjmujący POST
+Na stronie robisz JavaScript który wykonuje asynchroniczny request (tj. taki który nie przeładowuje strony) 
+tzn. AJAX endpoint /add-to-cart dostaje sesje usera (czy to możliwe?), produkt oraz ilość i dodaje mu te dane 
+do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
+
+
+
+
+
+
 Jeśli chce wiedzieć więcej to zobaczę
 
 teoria
@@ -606,27 +663,20 @@ praktyka
 
     #TODO LIST
 
-    # zrobić FK do customer usera i zeby dzialalo jezeli user to user.id a jezeli customer to customer.id
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
-    # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
-    # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
+    
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
+    
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
+    
     # Zrobic autoryzacje
+   
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
+    
     # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
-
-# Pomysł byka na koszyk
-'''
-Robisz jakiś endpoint np /add-to-cart przyjmujący POST
-Na stronie robisz JavaScript który wykonuje asynchroniczny request (tj. taki który nie przeładowuje strony) 
-tzn. AJAX endpoint /add-to-cart dostaje sesje usera (czy to możliwe?), produkt oraz ilość i dodaje mu te dane 
-do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
-'''
 
 
 # DO BYKA
-
 
 # JWT TOKENY
 # DOCKER
