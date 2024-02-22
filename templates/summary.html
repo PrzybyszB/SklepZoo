@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<form method="POST">
+<form method="POST" action="{{ url_for('final_order_info') }}" >
 KWOTA DO ZAPŁATY : {{ total_cost }}
 </br>
 Zamówienie ID : {{ order.order_id }}
@@ -11,6 +11,25 @@ Podsumowanie koszyka :
     <li>Produkt ID: {{ item.product_id }}, Ilość: {{ item.quantity }}</li>
   {% endfor %}
 </ul>
+  <script
+      src='https://checkout.stripe.com/checkout.js'
+      class='stripe-button'
+      data-key={{public_key}}
+      data-amount='{{ total_cost * 100 }}'
+      data-name='Płatność'
+      data-description='Donation'
+      data-locale='auto'
+      data-zip-code='true'>
+      
+      
+      
+  </script>  
+</form>  
+
+
+
+
+
 </form>
 
 ORDERS
@@ -20,6 +39,7 @@ ORDERS
         <td>
         ID : {{ our_orders.order_id }}.
         User ID: {{ our_orders.user_id }}</a> - 
+        Customer ID: {{ our_orders.customer_id }}</a> -
         Data zamówienia : {{ our_orders.order_data }} - 
         Koszt całkowit : {{ our_orders.total_cost }}
         </br>

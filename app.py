@@ -8,12 +8,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.datastructures import MultiDict
 from sqlalchemy.orm import relationship
 import re
-import json
+from flasgger import Swagger, LazyString, LazyJSONEncoder
+from flasgger import swag_from
+import stripe
 # from db_models import Users, Products
 # from sites import sites
 
 
 app = Flask(__name__)
+swagger = Swagger(app)
+
+public_key = "pk_test_TYooMQauvdEDq54NiTphI7jx"
+stripe.api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 
 #Add Database
 
@@ -26,7 +32,6 @@ app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wje
 # Initialize The Database
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
-
 
 
 #Flask_Login Stuff
@@ -52,9 +57,41 @@ def make_session_time():
     app.permanent_session_lifetime = timedelta(minutes=1440)
 
 
+# @app.route('api/user_add', methods=['POST'])
+# def add_user(username, email, name, password_hash):
+# ....
+
 #Create User add function
 @app.route('/user_add', methods=['GET', 'POST'])
 def add_user():
+    """Example endpoint returning a list of colors by palette
+    This is using docstrings for specifications.
+    ---
+    parameters:
+      - name: add_user
+        in: path
+        type: string
+        enum: ['all', 'rgb', 'cmyk']
+        required: true
+        default: all
+    definitions:
+      Palette:
+        type: object
+        properties:
+          palette_name:
+            type: array
+            items:
+              $ref: '#/definitions/Color'
+      Color:
+        type: string
+    responses:
+      200:
+        description: A list of colors (may be filtered by palette)
+        schema:
+          $ref: '#/definitions/Palette'
+        examples:
+          rgb: ['red', 'green', 'blue']
+    """
     name = None
     form = UserForm()
     if form.validate_on_submit():
@@ -315,6 +352,7 @@ def product(product_id):
                                form2=form2, 
                                form1=form1,)
 
+
 @app.route('/order', methods=["GET","POST"])
 def order():
 
@@ -349,50 +387,52 @@ def order():
 def orders_detail(user_email):
     form = UserForm(request.form)
     cart = session.get('cart')
-    # if request.method == "POST" and form.validate_on_submit():
-    all_product_cost = []
+    products_cost =[]
+    product_in_cart = {}
     total_cost = 0
+    customer = Customer.query.filter_by(email = user_email).first()
+    user = Users.query.filter_by(email = user_email).first()
+    
+    if user:
+        user_id = user.user_id
+        customer_id = None
+    else:
+        user_id = None
+        customer_id = customer.customer_id
 
+    order = Orders(user_id=user_id, customer_id=customer_id, total_cost=0)
+    db.session.add(order)
+    
     for item in cart:
         product_id = int(item['product_id'])
-        product = Products.query.filter_by(product_id = product_id).first()
         quantity = int(item['quantity'])
-        total_product_cost = product.cost * quantity
-        all_product_cost.append(total_product_cost)
-        print(quantity)
-        print(total_product_cost)
-        
-    for num in all_product_cost:
-        total_cost += num
+        product = Products.query.get(product_id)
 
-    user = Users.query.filter_by(email = user_email).first()
-    order = Orders(user_id = user.user_id,
-                       total_cost = total_cost )
-    db.session.add(order)
-    db.session.commit()
+        if product:
+            total_product_cost = product.cost * quantity
+            products_cost.append(total_product_cost)
 
-    order_id = order.order_id
-    # TODO Jeżeli orders_detail jest potrzebny to mus być w loopie ?
-    # for item in cart:
-    #     product_id = int(item['product_id'])
-    #     product = Products.query.filter_by(product_id = product_id).first()
-    #     quantity = int(item['quantity'])
-    #     orders_detail = Orders_detail(order_id = order.order_id,
-    #                                 product_id = product_id,
-    #                                 quantity_of_product= quantity)
-    #     db.session.add(orders_detail)
-    #     db.session.commit()
-    orders_detail = Orders_detail(order_id = order.order_id,
-                                    product_id = product_id,
-                                    quantity_of_product= quantity)
-    db.session.add(orders_detail)
+            orders_detail = Orders_detail(
+                            order_id=order.order_id,
+                            product_id=product_id,
+                            quantity_of_product=quantity)
+            db.session.add(orders_detail)
+
+            product_in_cart[product_id] = {
+                'ilosc': quantity,
+                'cena_za_produkt': product.cost,
+                'suma': total_product_cost}
+            print(product_in_cart)
+
+    total_cost = sum(products_cost)
+    order.total_cost = total_cost
     db.session.commit()
-    return render_template("orders_detail.html", 
-                           form=form, 
-                           cart=cart, 
+    
+    return render_template("orders_detail.html",
+                           form=form,
+                           cart=cart,
                            user_email=user_email,
-                           order_id = order_id )
-
+                           order_id=order.order_id)
 
 @app.route('/summary/<int:order_id>', methods=["GET", "POST"])
 def summary(order_id):
@@ -405,8 +445,35 @@ def summary(order_id):
                            total_cost = total_cost,
                            cart = cart,
                            orders_list = orders_list,
-                           orders_detail_list = orders_detail_list)
+                           orders_detail_list = orders_detail_list,
+                           public_key = public_key)
+    
 
+@app.route('/payment/<int:order_id>', methods=["GET","POST"])
+def payment(order_id):
+    order = Orders.query.get_or_404(order_id)
+    # Customer info
+    customer = stripe.Customer.create(email =  request.form['stripeEmail'],
+                                      source = request.form['stripeToken'])
+    
+    # Payment info
+    charge = stripe.Charge.create(
+        customer = customer.id,
+        amount=order.total_cost,
+        currency='usd',
+        description='Płatność'
+    )
+
+    return redirect(url_for('final_order_info'))
+
+
+@app.route('/final_order_info', methods=["GET","POST"])
+def final_order_info():
+    return render_template('final_order_info.html')
+
+
+# chłop wybiera produkty -> dodaje je do koszyka -> przechodzi do płatności (cart summary) -> płaci | w obrębie jednej sesji
+# chłop sprawdza swoje zamówienia -> patrzy w historie zamówień (shopping history / moje zamówienia) | w bazie danych
 
 #DB MODELS
 
@@ -458,11 +525,11 @@ class Products(db.Model):
 
 class Orders(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False,)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True,)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.customer_id'), nullable=True,)
     order_data = db.Column(db.DateTime, default=datetime.utcnow)
     total_cost = db.Column(db.Integer, nullable=False)
     order_detail_relationship = db.relationship('Orders_detail', backref='orders', lazy=True)
-
 
 class Orders_detail(db.Model):
     order_detail_id = db.Column(db.Integer, primary_key=True)
@@ -476,6 +543,7 @@ class Customer(db.Model):
     name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
     adress = db.Column(db.String(120), nullable=False)
+    order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
 
     # Create A String
     def __repr__(self):
@@ -538,6 +606,7 @@ praktyka
 
     #TODO LIST
 
+    # zrobić FK do customer usera i zeby dzialalo jezeli user to user.id a jezeli customer to customer.id
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
     # Tworze produkt, robie przy produkcie add to koszyk przenosi mnie do koszyka
     # Ustawić żeby produkty układały sie w kolejnośći ID/ żeby ich ID sie resetowało
@@ -545,7 +614,7 @@ praktyka
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
     # Zrobic autoryzacje
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
-
+    # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
 
 # Pomysł byka na koszyk
 '''
@@ -557,9 +626,6 @@ do jego słownika sesji endpoint zwraca JSON z aktualnym koszykiem usera
 
 
 # DO BYKA
-# JWT - tokeny/typy autoryzacji do ogarnięcia
-# Orders detail list czy to potrzebne i czy dobrze printuje bo jest jeden rpodukt w summary
-# Ten orders detai jest chyba niepotrzebny bo wszystko sie przenosi za pomoca session, wtedy w order wjebać product_id i quantity_of_products
 
 
 # JWT TOKENY
