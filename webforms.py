@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField
-from wtforms.validators import DataRequired, EqualTo, Length, NumberRange
+from wtforms.validators import DataRequired, EqualTo, NumberRange, Optional
 
 
 
@@ -18,8 +18,8 @@ class UserForm(FlaskForm):
     name =  StringField("Imię", validators=[DataRequired()])
     username = StringField("Username", validators=[DataRequired()])
     email =  StringField("Email", validators=[DataRequired()])
-    last_name = StringField("Nazwisko", validators=[DataRequired()])
-    adress = StringField("Adres", validators=[DataRequired()])
+    last_name = StringField("Nazwisko", validators=[Optional()])
+    adress = StringField("Adres", validators=[Optional()])
     password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match!')])
     password_hash2 = PasswordField("Potwierdź hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")

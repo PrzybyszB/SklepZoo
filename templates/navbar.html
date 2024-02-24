@@ -6,7 +6,21 @@
           <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ms-auto  mb-2 mb-lg-0">
+        <ul class="navbar-nav ms-auto  mb-2 mb-lg-0">
+            {% if current_user.user_id == 1 %}
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('user_list') }}">Lista Userów</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('add_category') }}">Dodaj kategorie</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('admin.index') }}">Panel Admina</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('add_product') }}">Dodaj produkt</a>
+            </li>
+            {% endif %}
             {% if current_user.is_authenticated %} 
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('dashboard') }}">User Profile</a>
@@ -23,31 +37,27 @@
             </li>
             {% endif %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('add_product') }}">Dodaj produkt</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('user_list') }}">Lista Userów</a>
+              <a class="nav-link" name="cart" href="{{ url_for('products') }}">Produkty</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" name="cart" href="{{ url_for('cart') }}">Koszyk</a>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  Kategorie
+                Kategorie
               </a>
-                <ul class="dropdown-menu" style="background-color: #9ACD32; border: none;">
-                    <li><a class="dropdown-item" href="/sucha_karma" style="background-color: #9ACD32; text-align: left;">Sucha karma</a></li>
-                    <li><a class="dropdown-item" href="/mokra_karma" style="background-color: #9ACD32; text-align: left;">Mokra karma</a></li>
-                    <li><a class="dropdown-item" href="/zabawki" style="background-color: #9ACD32; text-align: left;">Zabawki</a></li>
-                    <li><a class="dropdown-item" href="/products" style="background-color: #9ACD32; text-align: left;">Produkty</a></li>
-                    <li><a class="dropdown-item" href="/add_category" style="background-color: #9ACD32; text-align: left;">Dodaj Kategorie</a></li>
-                </ul>
+              <ul class="dropdown-menu" style="background-color: #9ACD32; border: none;">
+                <li><a class="dropdown-item" href="/sucha_karma" style="background-color: #9ACD32; text-align: left;">Sucha karma</a></li>
+                <li><a class="dropdown-item" href="/mokra_karma" style="background-color: #9ACD32; text-align: left;">Mokra karma</a></li>
+                <li><a class="dropdown-item" href="/zabawki" style="background-color: #9ACD32; text-align: left;">Zabawki</a></li>
+              </ul>
             </li>
           </ul>
           <form class="d-flex">
-              <input class="form-control me-2" type="search" placeholder="Wpisz produkt" aria-label="Search">
-              <button class="btn btn-outline-secondary" type="submit">Wyszukaj</button>
+            <input class="form-control me-2" type="search" placeholder="Wpisz produkt" aria-label="Search">
+            <button class="btn btn-outline-secondary" type="submit">Wyszukaj</button>
           </form>
+        </div>
       </div>
-  </div>
-</nav>
+    </nav>
+    

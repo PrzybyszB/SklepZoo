@@ -1,54 +1,166 @@
 from flask import Flask, render_template, flash, request, redirect, url_for, session
 from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
-from flask_user import roles_required
-from flask_mail import Mail
+# import flask_login as login
+from flask_admin import Admin, AdminIndexView, expose, helpers
+from flask_admin.contrib.sqla import ModelView
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detailForm, CustomerForm
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.datastructures import MultiDict
-from sqlalchemy.orm import relationship
 import re
 import stripe
-import os
 
 
 app = Flask(__name__)
+
+
+
+#Add Database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://pbartosz:1q2w3e4r5t6Y.@localhost/FirstDataBase'
+
+#Secret Key!
+app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
+
+# Initialize The Database
+db = SQLAlchemy(app)
+
+# Flask migrate instance
+migrate = Migrate(app,db)
+
+#DB MODELS
+
+#Create Model
+class Users(db.Model, UserMixin):
+    user_id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(20), nullable=False, unique=True)
+    name = db.Column(db.String(200), nullable=False)
+    last_name = db.Column(db.String(200), nullable=True)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    adress = db.Column(db.String(120), nullable=True)
+    data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    orders_relationship = db.relationship('Orders', backref='users', lazy=True)
+
+
+    # 
+    @property
+    def is_authenticated(self):
+        return True
+    
+    @property
+    def is_active(self):
+        return True
+    
+
+    @property
+    def is_anonymous(self):
+        return False
+    
+    # Doing changes about user_id define, default is define as id in login stuff
+    def get_id(self):
+        return (self.user_id)
+    
+    @property
+    def is_anonymous(self):
+        return False
+
+
+    # Resolve : sqlalchemy.exc.InvalidRequestError: Entity namespace for "users" has no property "id"
+    @property
+    def id(self):
+        return self.user_id
+    
+    # Doing password stuff
+    password_hash = db.Column(db.String(128))
+    password_hash - db.Column(db.String(128))
+
+    @property
+    def password(self):
+        raise AttributeError ('password is not readable attribute')
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash, password)
+    # Create A String
+    def __repr__(self):
+        return '<Name %r>' % self.name
+
+class Category(db.Model):
+    category_id = db.Column(db.Integer, primary_key=True, index=True)
+    category_name =db.Column(db.String(50), unique=True, nullable=False)
+    products_relationship = db.relationship('Products', backref='category', lazy=True)
+
+class Products(db.Model):
+    product_id = db.Column(db.Integer, primary_key=True)
+    product_name = db.Column(db.String(200), nullable=False)
+    cost = db.Column(db.Integer, nullable=True)
+    producent = db.Column(db.String(200), nullable=False)
+    data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
+    order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
+
+class Orders(db.Model):
+    order_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True,)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.customer_id'), nullable=True,)
+    order_data = db.Column(db.DateTime, default=datetime.utcnow)
+    total_cost = db.Column(db.Integer, nullable=False)
+    order_detail_relationship = db.relationship('Orders_detail', backref='orders', lazy=True)
+
+class Orders_detail(db.Model):
+    order_detail_id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=True,)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
+    quantity_of_product = db.Column(db.Integer, nullable=False)
+    
+class Customer(db.Model):
+    customer_id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), nullable=True, unique=True)
+    name = db.Column(db.String(120), nullable=False)
+    last_name = db.Column(db.String(120), nullable=False)
+    adress = db.Column(db.String(120), nullable=False)
+    order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
+
+'''
+TODO https://flask-admin.readthedocs.io/en/latest/introduction/#rolling-your-own
+https://github.com/flask-admin/Flask-Admin/tree/master/examples/auth-flask-login.
+zobaczyc ten kod źródłowy jak połączyć login flask i flask admin
+'''
+# Flask admin view, username = Admin, password = 123, email = Admin@email.com, user_id = 1
+class MyAdminIndexView(AdminIndexView):
+    @expose('/')
+    def index(self):
+        if current_user.is_authenticated:
+            id = current_user.user_id
+            if id == 1:
+              return super(MyAdminIndexView, self).index()  
+        if not current_user.is_authenticated:
+            flash('U have to be Admin to do Admin things')
+            return redirect(url_for('login'))
+        else:
+            flash('U have to be Admin to do Admin things')
+            return redirect(url_for('dashboard'))
+
+
+# Flask admin init base_template='admin.html')
+        
+admin = Admin(app, name='Admin',index_view=MyAdminIndexView(), template_mode='bootstrap3')
+
+admin.add_view(ModelView(Products, db.session))
+admin.add_view(ModelView(Category, db.session))
+admin.add_view(ModelView(Users, db.session))
+
+#Flask_Login Stuff
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 
 # For payments
 public_key = "pk_test_TYooMQauvdEDq54NiTphI7jx"
 stripe.api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
 
-#Add Database
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://pbartosz:1q2w3e4r5t6Y.@localhost/FirstDataBase'
-
-
-#Secret Key!
-app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
-
-# app.config['USER_EMAIL_SENDER_EMAIL'] = 'email@example.com'
-# app.config['MAIL_USERNAME'] = 'email@example.com'
-# app.config['MAIL_PASSWORD'] = 'password'
-# app.config['MAIL_DEFAULT_SENDER'] = '"MyApp" <noreply@example.com>'
-# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-# app.config['MAIL_PORT'] = '465'
-# app.config['MAIL_USE_SSL'] = True
-# app.config['CSRF_ENABLED'] = True
-# app.config['USER_APP_NAME'] = "AppName"
-
-
-# Initialize The Database
-db = SQLAlchemy(app)
-migrate = Migrate(app,db)
-
-
-#Flask_Login Stuff
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
 
 
 @login_manager.user_loader
@@ -59,30 +171,6 @@ def load_user(user_id):
 @app.route("/", methods=['GET', 'POST'])
 def home():
     return render_template("index.html")
-
-
-@app.route("/login_admin" ,methods=['GET', 'POST'])
-def login_admin():
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = Admin.query.filter_by(username=form.username.data).first()
-        if user:
-            #check the hash
-            if check_password_hash(user.password_hash, form.password.data):
-                login_user(user)
-                flash("Login successfull")
-                return redirect(url_for('admin'))
-            else:
-                flash("Wrong password - Try again")
-        else:
-            flash("That admin doeasn't exist")
-    return render_template('login_admin.html', form=form)
-
-
-@app.route("/admin", methods=['GET', 'POST'])
-#@roles_required('admin')
-def admin():
-    return render_template("admin.html")
 
 # Making session time 24h
 @app.before_request
@@ -96,6 +184,7 @@ def make_session_time():
 def add_user():
     name = None
     form = UserForm()
+    print(form.errors)
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user is None:
@@ -104,7 +193,9 @@ def add_user():
             user = Users(name=form.name.data,
                          username = form.username.data, 
                          email = form.email.data, 
-                         password_hash=hashed_pw)
+                         password_hash=hashed_pw,
+                         adress = None,
+                         last_name = None)
             db.session.add(user)
             db.session.commit()
         name = form.name.data
@@ -178,53 +269,64 @@ def dashboard():
 
 
 @app.route('/add_category' ,methods=['GET', 'POST'])
+@login_required
 def add_category():
-    category_name = None
-    form = CategoryForm()
-    if form.validate_on_submit():
-        check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
-        if check_exist_category is None:
-            new_category = Category(category_name = form.category_name.data)
-            
-            db.session.add(new_category)
-            db.session.commit()
-        category_name = form.category_name.data
-        form.category_name.data = ''
-        flash("Category Added Successfully")
-    category_list = Category.query.order_by(Category.category_id)
-    return render_template('add_category.html', 
-                           form=form,
-                           category_name = category_name,
-                           category_list = category_list)
+    id = current_user.user_id
+    if id == 1:
+        category_name = None
+        form = CategoryForm()
+        if form.validate_on_submit():
+            check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
+            if check_exist_category is None:
+                new_category = Category(category_name = form.category_name.data)
+                
+                db.session.add(new_category)
+                db.session.commit()
+            category_name = form.category_name.data
+            form.category_name.data = ''
+            flash("Category Added Successfully")
+        category_list = Category.query.order_by(Category.category_id)
+        return render_template('add_category.html', 
+                            form=form,
+                            category_name = category_name,
+                            category_list = category_list)
+    else:
+        flash("Ooops, something went wrong")
+        return redirect(url_for('dashboard'))
 
 
 @app.route('/add-product' ,methods=['GET', 'POST'])
+@login_required
 def add_product():
-    # category_id = Products.category_id
-    product_name = None
-    form = ProductForm()
-    if form.validate_on_submit():
-        product = Products.query.filter_by(product_name=form.product_name.data).first()
-        if product is None:
-            product = Products(product_name=form.product_name.data,
-                               cost = form.cost.data,
-                                producent = form.producent.data,
-                                category_id = form.category_id.data)
-            
-            db.session.add(product)
-            db.session.commit()
-        product_name = form.product_name.data
-        form.product_name.data = ''
-        form.cost.data = ''
-        form.producent.data = ''
-        form.category_id.data = ''
-        flash("Product Added Successfully")
-    our_products = Products.query.order_by(Products.data_added)
-    return render_template('add_product.html', 
-                           form=form,
-                           product_name=product_name,
-                           our_products=our_products)
-
+    id = current_user.user_id
+    if id == 1:
+        # category_id = Products.category_id
+        product_name = None
+        form = ProductForm()
+        if form.validate_on_submit():
+            product = Products.query.filter_by(product_name=form.product_name.data).first()
+            if product is None:
+                product = Products(product_name=form.product_name.data,
+                                cost = form.cost.data,
+                                    producent = form.producent.data,
+                                    category_id = form.category_id.data)
+                
+                db.session.add(product)
+                db.session.commit()
+            product_name = form.product_name.data
+            form.product_name.data = ''
+            form.cost.data = ''
+            form.producent.data = ''
+            form.category_id.data = ''
+            flash("Product Added Successfully")
+        our_products = Products.query.order_by(Products.data_added)
+        return render_template('add_product.html', 
+                            form=form,
+                            product_name=product_name,
+                            our_products=our_products)
+    else:
+        flash("Ooops, something went wrong")
+        return redirect(url_for('dashboard'))
     
 @app.route('/products', methods=['GET', 'POST'])
 def products():
@@ -255,11 +357,16 @@ def zabawki():
 
 
 @app.route('/user-list', methods=['GET', 'POST'])
+@login_required
 def user_list():
-    our_users = Users.query.order_by(Users.email)
-    return render_template('user_list.html',
+    id = current_user.user_id
+    if id == 1:
+        our_users = Users.query.order_by(Users.email)
+        return render_template('user_list.html',
                            our_users=our_users)
-
+    else:
+        flash("Ooops, something went wrong")
+        return redirect(url_for('dashboard'))
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -441,6 +548,7 @@ def orders_detail(user_email):
                            user_email=user_email,
                            order_id=order.order_id)
 
+
 @app.route('/summary/<int:order_id>', methods=["GET", "POST"])
 def summary(order_id):
     cart = session.get('cart')
@@ -478,113 +586,6 @@ def payment(order_id):
 def final_order_info():
     return render_template('final_order_info.html')
 
-
-
-
-
-#DB MODELS
-
-#Create Model
-class Users(db.Model, UserMixin):
-    user_id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(20), nullable=False, unique=True)
-    name = db.Column(db.String(200), nullable=False)
-    last_name = db.Column(db.String(200), nullable=True)
-    email = db.Column(db.String(120), nullable=False, unique=True)
-    adress = db.Column(db.String(120), nullable=True)
-    data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    Orders_relationship = db.relationship('Orders', backref='users', lazy=True)
-
-    # Doing changes about user_id define, default is define as id in login stuff
-    def get_id(self):
-        return (self.user_id)
-
-    # Doing password stuff
-    password_hash = db.Column(db.String(128))
-    password_hash - db.Column(db.String(128))
-
-    @property
-    def password(self):
-        raise AttributeError ('password is not readable attribute')
-    @password.setter
-    def password(self, password):
-        self.password_hash = generate_password_hash(password)
-    def verify_password(self,password):
-        return check_password_hash(self.password_hash, password)
-    # Create A String
-    def __repr__(self):
-        return '<Name %r>' % self.name
-
-class Category(db.Model):
-    category_id = db.Column(db.Integer, primary_key=True, index=True)
-    category_name =db.Column(db.String(50), unique=True, nullable=False)
-    products_relationship = db.relationship('Products', backref='category', lazy=True)
-
-class Products(db.Model):
-    product_id = db.Column(db.Integer, primary_key=True)
-    product_name = db.Column(db.String(200), nullable=False)
-    cost = db.Column(db.Integer, nullable=True)
-    producent = db.Column(db.String(200), nullable=False)
-    data_added = db.Column(db.DateTime, default=datetime.utcnow)
-    category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
-    order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
-
-class Orders(db.Model):
-    order_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True,)
-    customer_id = db.Column(db.Integer, db.ForeignKey('customer.customer_id'), nullable=True,)
-    order_data = db.Column(db.DateTime, default=datetime.utcnow)
-    total_cost = db.Column(db.Integer, nullable=False)
-    order_detail_relationship = db.relationship('Orders_detail', backref='orders', lazy=True)
-
-class Orders_detail(db.Model):
-    order_detail_id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=True,)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.product_id'), nullable=True)
-    quantity_of_product = db.Column(db.Integer, nullable=False)
-    
-class Customer(db.Model):
-    customer_id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), nullable=True, unique=True)
-    name = db.Column(db.String(120), nullable=False)
-    last_name = db.Column(db.String(120), nullable=False)
-    adress = db.Column(db.String(120), nullable=False)
-    order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
-
-class Role(db.Model):
-    role_id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(50), unique=True)
-
-class AdminRoles(db.Model):
-    user_role_id = db.Column(db.Integer(), primary_key=True)
-    admin_id = db.Column(db.Integer(), db.ForeignKey('admin.admin_id', ondelete='CASCADE'))
-    role_id = db.Column(db.Integer(), db.ForeignKey('role.role_id', ondelete='CASCADE'))
-
-class Admin(db.Model, UserMixin):
-    admin_id = db.Column(db.Integer, primary_key=True)                      # 2
-    username = db.Column(db.String(20), nullable=False, unique=True)        # admin
-    email = db.Column(db.String(120), nullable=False, unique=True)          # admin@email.com
-    roles = db.relationship('Role', secondary='admin_roles',                # password: admin123
-            backref=db.backref('admin', lazy='dynamic'))
-
-    # Doing password stuff
-    password_hash = db.Column(db.String(128))
-    password_hash - db.Column(db.String(128))
-
-    @property
-    def password(self):
-        raise AttributeError ('password is not readable attribute')
-    @password.setter
-    def password(self, password):
-        self.password_hash = generate_password_hash(password)
-    def verify_password(self,password):
-        return check_password_hash(self.password_hash, password)
-    # Create A String
-    def __repr__(self):
-        return '<Name %r>' % self.name
-
-
-
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 
@@ -611,6 +612,7 @@ NORMALIZACJA
 
 
     #Maciek 12 zmienia nick:
+
     # 1. Jest tak ustawione zeby zmiana nicku integrowala baze danych i wszystkie Maciek12 zmienia sie na nowy nick
     # 2. Baza danych zostaje niezmieniona i wszystkie zakupy Maciek12 zostaja tak jak są nieruszone
     # 3. Jezeli pojawi sie nowy Maciek12 to i tak bedzie mial inny primary_key
@@ -663,17 +665,32 @@ praktyka
 
     #TODO LIST
 
+
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
     
+    # Zrobić w panelu Admina, żeby home cofało do strony głównej strony a nie panelu
+
     # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
-    
-    # Zrobic autoryzacje
-   
+       
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
     
     # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
+
+
+
+'''
+Po zrobieniu api zrobić autoryzacje i token lata po froncie
+'/auth -> [email, password] => token
+token (id, roles: [ ] ) 
+FE -> Authorization.header = Berearer <token>
+'POST -> includes <token> -> decode -> roles.includes('admin)
+
+
+'''
+
+
 
 
 # DO BYKA
