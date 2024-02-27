@@ -1,7 +1,6 @@
-from flask import Flask, render_template, flash, request, redirect, url_for, session
+from flask import Flask, render_template, flash, request, redirect, url_for, session, jsonify
 from flask_migrate import Migrate
 from flask_login import UserMixin, LoginManager, login_user, login_required, logout_user, current_user
-# import flask_login as login
 from flask_admin import Admin, AdminIndexView, expose, helpers
 from flask_admin.contrib.sqla import ModelView
 from flask_sqlalchemy import SQLAlchemy
@@ -10,7 +9,8 @@ from webforms import LoginForm, UserForm, ProductForm, CategoryForm, Order_detai
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import stripe
-
+import validators
+from constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_201_CREATED
 
 app = Flask(__name__)
 
@@ -72,19 +72,18 @@ class Users(db.Model, UserMixin):
     
     # Doing password stuff
     password_hash = db.Column(db.String(128))
-    password_hash - db.Column(db.String(128))
 
-    @property
-    def password(self):
-        raise AttributeError ('password is not readable attribute')
-    @password.setter
-    def password(self, password):
-        self.password_hash = generate_password_hash(password)
-    def verify_password(self,password):
-        return check_password_hash(self.password_hash, password)
-    # Create A String
-    def __repr__(self):
-        return '<Name %r>' % self.name
+    # @property
+    # def password(self):
+    #     raise AttributeError ('password is not readable attribute')
+    # @password.setter
+    # def password(self, password):
+    #     self.password_hash = generate_password_hash(password)
+    # def verify_password(self,password):
+    #     return check_password_hash(self.password_hash, password)
+    # # Create A String
+    # def __repr__(self):
+    #     return '<Name %r>' % self.name
 
 class Category(db.Model):
     category_id = db.Column(db.Integer, primary_key=True, index=True)
@@ -184,7 +183,6 @@ def make_session_time():
 def add_user():
     name = None
     form = UserForm()
-    print(form.errors)
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user is None:
@@ -586,6 +584,61 @@ def payment(order_id):
 def final_order_info():
     return render_template('final_order_info.html')
 
+
+
+
+'''---------------------------------   REST API   --------------------------------------------'''
+
+
+@app.route('/test', methods=['GET', 'POST'])
+def test():
+    if request.method == 'GET':
+        return jsonify ({"response": "Get Request Called"})
+    elif request.method == 'POST':
+        req_Json = request.json
+        name = req_Json['name']
+        return jsonify({"response": "Hi " + name})
+
+
+@app.route('/api/add_user', methods=['POST'])
+def api_add_user():
+    name = request.json['name']
+    last_name = request.json['last_name']
+    username = request.json['username']
+    email = request.json['email']
+    password_hash = request.json['password']
+    password2 = request.json['password2']
+    adress = request.json['adress']
+    
+    if not validators.email(email):
+        return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
+    
+    if password_hash != password2:
+        return jsonify({'error': "Password must match!"}), HTTP_400_BAD_REQUEST
+
+    if Users.query.filter_by(email=email).first() is not None:
+        return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
+
+    pwd_hash = generate_password_hash(password_hash, "pbkdf2:sha256")
+
+    user = Users(name=name,last_name=last_name, username=username, email=email, password_hash=pwd_hash, adress=adress )
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({
+                    'message': "User created",
+                    'user': {
+                        'username': username, 'email' : email
+                    }}), HTTP_201_CREATED
+
+
+
+
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
 
@@ -665,6 +718,7 @@ praktyka
 
     #TODO LIST
 
+    # Ogarnąć rejestracje, na zasadzie żeby login nie miał pustych miejsc, żeby hasło było odpowiednio długie itp 
 
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
     
@@ -690,10 +744,75 @@ FE -> Authorization.header = Berearer <token>
 
 '''
 
+'''  
 
+
+Folder "constants" (stałe) w aplikacji Flask może być używany do przechowywania stałych, które są używane w różnych częściach aplikacji. Jest to dobre praktyka, ponieważ pozwala to na scentralizowane zarządzanie stałymi i ułatwia zmiany w razie potrzeby.
+
+W takim folderze możesz przechowywać różne rodzaje stałych, takie jak:
+
+Stałe związane z konfiguracją aplikacji, takie jak nazwy baz danych, klucze API, adresy URL innych usług, itp.
+Stałe związane z wiadomościami wyświetlanymi w interfejsie użytkownika, takie jak komunikaty o błędach, wiadomości sukcesu, teksty na przyciskach, itp.
+Stałe związane z logiką biznesową, takie jak maksymalne długości pól formularza, wartości stałe wykorzystywane w obliczeniach, itp.
+Przykładowa struktura folderu "constants" w aplikacji Flask mogłaby wyglądać tak:
+
+arduino
+Copy code
+my_flask_app/
+    app/
+        constants/
+            __init__.py
+            config.py
+            messages.py
+            business_logic.py
+        routes.py
+        models.py
+        templates/
+        static/
+    tests/
+    config.py
+    run.py
+W pliku __init__.py w folderze "constants" możesz zdefiniować moduł jako pakiet, a następnie w poszczególnych plikach, takich jak config.py, messages.py, business_logic.py, przechowywać odpowiednie stałe w formie zmiennych lub klas.
+
+Na przykład w pliku config.py możesz mieć:
+
+python
+Copy code
+DEBUG = True
+DATABASE_URI = 'sqlite:///mydatabase.db'
+SECRET_KEY = 'super_secret_key'
+W pliku messages.py możesz mieć:
+
+python
+Copy code
+ERROR_MESSAGES = {
+    'not_found': 'Nie znaleziono zasobu.',
+    'unauthorized': 'Brak autoryzacji.'
+}
+W pliku business_logic.py możesz mieć:
+
+python
+Copy code
+MAX_USERNAME_LENGTH = 50
+MAX_PASSWORD_LENGTH = 100
+Następnie możesz importować te stałe w innych częściach swojej aplikacji, takich jak pliki routingu, modele, itp., co pozwoli uniknąć duplikacji kodu i ułatwi zmiany w stałych, gdy zajdzie taka potrzeba.
+
+
+
+
+
+
+
+
+
+'''
 
 
 # DO BYKA
+
+# CO TO JEST TO POD USERS TAK DOKLADNIE WYJASNIC
+
+
 
 # JWT TOKENY
 # DOCKER
