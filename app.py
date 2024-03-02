@@ -10,10 +10,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import stripe
 import validators
-from constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_201_CREATED
+from constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_201_CREATED, HTTP_200_OK, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR
 
 app = Flask(__name__)
-
 
 
 #Add Database
@@ -73,17 +72,17 @@ class Users(db.Model, UserMixin):
     # Doing password stuff
     password_hash = db.Column(db.String(128))
 
-    # @property
-    # def password(self):
-    #     raise AttributeError ('password is not readable attribute')
-    # @password.setter
-    # def password(self, password):
-    #     self.password_hash = generate_password_hash(password)
-    # def verify_password(self,password):
-    #     return check_password_hash(self.password_hash, password)
-    # # Create A String
-    # def __repr__(self):
-    #     return '<Name %r>' % self.name
+    @property
+    def password(self):
+        raise AttributeError ('password is not readable attribute')
+    @password.setter
+    def password(self, password):
+        self.password_hash = generate_password_hash(password)
+    def verify_password(self,password):
+        return check_password_hash(self.password_hash, password)
+    # Create A String
+    def __repr__(self):
+        return '<Name %r>' % self.name
 
 class Category(db.Model):
     category_id = db.Column(db.Integer, primary_key=True, index=True)
@@ -92,10 +91,11 @@ class Category(db.Model):
 
 class Products(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
-    product_name = db.Column(db.String(200), nullable=False)
+    product_name = db.Column(db.String(200), nullable=False, unique=True)
     cost = db.Column(db.Integer, nullable=True)
     producent = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    # TODO category_name = db.Column(db.Integer, db.ForeignKey('category.category_name'), nullable=False,)
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
     order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
 
@@ -115,17 +115,12 @@ class Orders_detail(db.Model):
     
 class Customer(db.Model):
     customer_id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), nullable=True, unique=True)
+    email = db.Column(db.String(120), nullable=True, unique=False)
     name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
     adress = db.Column(db.String(120), nullable=False)
     order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
 
-'''
-TODO https://flask-admin.readthedocs.io/en/latest/introduction/#rolling-your-own
-https://github.com/flask-admin/Flask-Admin/tree/master/examples/auth-flask-login.
-zobaczyc ten kod źródłowy jak połączyć login flask i flask admin
-'''
 # Flask admin view, username = Admin, password = 123, email = Admin@email.com, user_id = 1
 class MyAdminIndexView(AdminIndexView):
     @expose('/')
@@ -214,7 +209,7 @@ def add_user():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = Users.query.filter_by(username=form.username.data).first()
+        user = Users.query.filter_by(email=form.email.data).first()
         if user:
             #check the hash
             if check_password_hash(user.password_hash, form.password.data):
@@ -238,33 +233,33 @@ def logout():
 
 
 #Create Dashboard Page
-@app.route('/dashboard',methods=['GET', 'POST'])
+@app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
     form = UserForm()
     id = current_user.user_id
-    name_to_update = Users.query.get_or_404(id)
+    user_to_update = Users.query.get_or_404(id)
     if request.method == "POST":
-        name_to_update.name = request.form['name']
-        name_to_update.email = request.form['email']
-        name_to_update.username = request.form['username']
+        user_to_update.name = request.form['name']
+        user_to_update.last_name = request.form['last_name']
+        user_to_update.username = request.form['username']
+        user_to_update.adress = request.form['adress']
         try:
             db.session.commit()
             flash("Users Updated Successfully")
             return render_template('dashboard.html',
                                    form=form,
-                                   name_to_update = name_to_update)
+                                   user_to_update = user_to_update)
         except:
             flash("Error ! Try again")
             return render_template('dashboard.html',
                                    form = form,
-                                   name_to_update = name_to_update)
+                                   user_to_update = user_to_update)
     else:
         return render_template('dashboard.html',
                                    form = form,
-                                   name_to_update = name_to_update,
+                                   user_to_update = user_to_update,
                                    id = id)
-
 
 @app.route('/add_category' ,methods=['GET', 'POST'])
 @login_required
@@ -366,30 +361,15 @@ def user_list():
         flash("Ooops, something went wrong")
         return redirect(url_for('dashboard'))
 
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
+@app.route('/update', methods=['GET', 'POST'])
 @login_required
-def update(user_id):
+def update():
     form = UserForm()
-    name_to_update = Users.query.get_or_404(user_id)
-    if request.method == "POST":
-        name_to_update.name = request.form['name']
-        name_to_update.email = request.form['email']
-        name_to_update.username = request.form['username']
-        try:
-            db.session.commit()
-            flash("Users Updated Successfully")
-            return render_template('update.html',
-                                   form=form,
-                                   name_to_update = name_to_update)
-        except:
-            flash("Error ! Try again")
-            return render_template('update.html',
+    user_id = current_user.user_id
+    user_to_update = Users.query.get_or_404(user_id)
+    return render_template('update.html',
                                    form = form,
-                                   name_to_update = name_to_update)
-    else:
-        return render_template('update.html',
-                                   form = form,
-                                   name_to_update = name_to_update,
+                                   user_to_update = user_to_update,
                                    user_id = user_id)
 
 
@@ -588,6 +568,11 @@ def final_order_info():
 
 
 '''---------------------------------   REST API   --------------------------------------------'''
+# POMOCNE   https://www.youtube.com/watch?v=WFzRy8KVcrM&t=4262s&ab_channel=CryceTruly
+#           https://www.youtube.com/watch?v=dkgRxBw_4no&ab_channel=Craftech
+
+
+
 
 
 @app.route('/test', methods=['GET', 'POST'])
@@ -600,39 +585,256 @@ def test():
         return jsonify({"response": "Hi " + name})
 
 
-@app.route('/api/add_user', methods=['POST'])
+@app.post('/api/add_user')
 def api_add_user():
     name = request.json['name']
     last_name = request.json['last_name']
     username = request.json['username']
     email = request.json['email']
-    password_hash = request.json['password']
+    password = request.json['password']
     password2 = request.json['password2']
     adress = request.json['adress']
     
     if not validators.email(email):
         return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
     
-    if password_hash != password2:
+    if password != password2:
         return jsonify({'error': "Password must match!"}), HTTP_400_BAD_REQUEST
 
     if Users.query.filter_by(email=email).first() is not None:
         return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
 
-    pwd_hash = generate_password_hash(password_hash, "pbkdf2:sha256")
+    pwd_hash = generate_password_hash(password, "pbkdf2:sha256")
 
-    user = Users(name=name,last_name=last_name, username=username, email=email, password_hash=pwd_hash, adress=adress )
+    user = Users(name=name,
+                 last_name=last_name,
+                 username=username, 
+                 email=email, 
+                 password=pwd_hash, 
+                 adress=adress )
+    
     db.session.add(user)
     db.session.commit()
 
     return jsonify({
                     'message': "User created",
                     'user': {
-                        'username': username, 'email' : email
+                        'username': username, 
+                        'email' : email
                     }}), HTTP_201_CREATED
 
 
+@app.post('/api/login')
+def api_login():
+    email = request.json.get('email', '')
+    password_hash = request.json.get('password', '')
 
+    user = Users.query.filter_by(email=email).first()
+
+    if user:
+        if check_password_hash(user.password_hash, password_hash):
+            login_user(user)
+            return jsonify({
+                'user':{
+                    'username' : user.username,
+                    'email' : user.email
+                }
+            }), HTTP_200_OK
+        else:
+            return jsonify({'error' : "wrong password - Try again"}), HTTP_401_UNAUTHORIZED 
+
+
+@app.post('/api/logout')
+def api_logout():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
+    else:
+        logout_user()
+        return jsonify({'response' : "You have been logged out"}), HTTP_200_OK
+
+
+@app.get('/api/dashboard')
+def api_dashboard():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED 
+    else:
+        return jsonify({
+            'user':{
+                'username' : current_user.username,
+                'email' : current_user.email,
+                'adress' : current_user.adress,
+                'last_name' : current_user.last_name,
+            }
+        }), HTTP_200_OK
+
+
+@app.post('/api/add_category')
+def api_add_category():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
+    
+    if current_user.is_authenticated:
+        id = current_user.user_id
+        if id == 1:
+            category_name = request.json['category_name']
+            check_exist_category =  Category.query.filter_by(category_name=category_name).first()
+            if check_exist_category is None:
+                new_category = Category(category_name = category_name)
+                db.session.add(new_category)
+                db.session.commit()
+                return jsonify({
+                    'message': 'Category created',
+                    'category' : category_name
+                }),  HTTP_201_CREATED
+            else:
+                return jsonify({'error' : " This category is already exist"}), HTTP_409_CONFLICT 
+        else:
+            return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
+
+
+@app.post('/api/add_product')
+def api_add_product():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
+
+    if current_user.is_authenticated:
+        id = current_user.user_id
+        if id == 1:
+            product_name = request.json['product_name']
+            cost = request.json['cost']
+            producent = request.json['producent']
+            category_id = request.json['category_id']
+            
+            if Category.query.filter_by(category_id=category_id).first() is None:
+                return jsonify({'error': "This category doesn't exist"}), HTTP_409_CONFLICT
+            
+            check_exist_product = Products.query.filter_by(product_name=product_name).first()
+            if check_exist_product is None:
+                new_product = Products(product_name=product_name,
+                                        cost = cost,
+                                        producent = producent,
+                                        category_id = category_id)
+                db.session.add(new_product)
+                db.session.commit()
+                return jsonify({
+                    'message': 'Product added',
+                    'product' : {
+                                "product name" : product_name,
+                                "cost" : cost,
+                                "producent" : producent,
+                                "category id" : category_id
+                    }
+                }),  HTTP_201_CREATED
+        else:
+            return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
+
+
+@app.get('/api/products')
+def api_products():
+    our_products = Products.query.order_by(Products.data_added).all()
+    product_list = []
+    
+    for our_product in our_products:
+                product_name = our_product.product_name
+                cost = our_product.cost
+                producent = our_product.producent
+                category_id = our_product.category_id
+
+                product_list.append({
+                    "product_name" : product_name,
+                    "cost" : cost,
+                    "producent" : producent,
+                    "category_id" : category_id})
+    
+    return jsonify({"product_list" : product_list}), HTTP_200_OK
+
+
+@app.get('/api/user_list')
+def api_user_list():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
+
+    if current_user.is_authenticated:
+        id = current_user.user_id
+        if id == 1:
+            our_users = Users.query.order_by(Users.email)
+            user_list = []
+            
+            for our_user in our_users:
+                username = our_user.username
+                name = our_user.name
+                last_name = our_user.last_name
+                email = our_user.email
+                adress = our_user.adress
+
+                user_list.append({
+                    "username" : username,
+                    "name" : name,
+                    "last_name" : last_name,
+                    "email" : email,
+                    "adress" : adress})
+            
+            return jsonify({"user list" : user_list}), HTTP_200_OK
+        
+        
+        else:
+            return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
+
+
+@app.route('/api/update', methods=['PUT'])
+def api_update():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
+    
+    if current_user.is_authenticated:
+        try:
+            user = Users.query.filter_by(user_id=current_user.user_id).first()
+            if user:
+                data = request.get_json()
+                user.name = data['name']
+                user.username = data['username']
+                user.last_name = data['last_name']
+                user.adress = data['adress']
+                db.session.commit()
+                return jsonify({ 
+                    'response' : 'user updated',
+                    'user' : {
+                        "name" : user.username,
+                        "username" : user.username,
+                        "last_name" : user.last_name,
+                        "adress" : user.adress
+
+                    }}), HTTP_200_OK
+            return jsonify({'resposne' : 'user not found'}), HTTP_404_NOT_FOUND
+        except:
+            return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
+    
+    #TODO ogarnąć tego puta, zrobić tak żeby wyświetłało aktualnione dane 
+
+    # if current_user.is_authenticated:
+    #     user_id = current_user.user_id
+    #     user_to_update = Users.query.get_or_404(user_id)
+        
+    #     name = request.get_json().get('name', user_to_update.name)
+    #     last_name = request.json('last_name', user_to_update.last_name)
+    #     username = request.json('username', user_to_update.username)
+    #     address = request.json('address', user_to_update.address)
+
+    #     user_to_update.name = name
+    #     user_to_update.last_name = last_name
+    #     user_to_update.username = username
+    #     user_to_update.address = address
+        
+    #     db.session.commit()
+    
+    # return jsonify({
+    #     "user" : {
+    #         "name" : user_to_update.name,
+    #         "last_name" : user_to_update.last_name,
+    #         "username" : user_to_update.username,
+    #         "address" : user_to_update.address
+    #     }
+    # }), HTTP_200_OK
 
 
 
@@ -718,6 +920,16 @@ praktyka
 
     #TODO LIST
 
+    # Zmienić wszystkie adress na address
+
+    # Dodać do update adress i drugie imie
+
+    # Ogarnąć pętle loop do product form odnośnie category id i odpowiadającej nazwie w select field, coś na zasadzie for id in Category.query.all() id = Category.category_id, name = Category.category_name i iterować ze 1 to Sucha karma, 2 to Mokra etc. Zmienić bazę danych z nazwy category ID na Cateogry name FK, żeby podawać nie ID tylko nazwę która jest unique i dla forntu będzie czytelniejsza, później w całym kodzie zmienić category_id na category_name w odpowiednich miejscach
+
+    # Ogarnąć żeby do kategori był jeden template i żeby wykrywał po slugu co ma wyświetlić, ogarnąć sluga z bazą danych ??
+
+    # Ogarnąc info że  mail nie spełnia warunków maila przy rejestracji 
+
     # Ogarnąć rejestracje, na zasadzie żeby login nie miał pustych miejsc, żeby hasło było odpowiednio długie itp 
 
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
@@ -732,7 +944,13 @@ praktyka
     
     # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
 
+    # ogarnąc żeby przy logowaniu nie było widac hasła gołym okiem w zbadaj źródło, payload (zoabczyc HTTPS co i jak, self certyfiakt 509)
 
+    # RABBITMQ
+
+    # dodać maxlength do inputow, ktore dotycza kolumn z ogranizczona liczba znakow
+
+    # dodac walidacje danych otrzymywanych z frontu, zeby np. jako ilosc nie móc podać "aaaeee"
 
 '''
 Po zrobieniu api zrobić autoryzacje i token lata po froncie
@@ -809,8 +1027,8 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 
 
 # DO BYKA
+# Api dashbordu sluzy do wyswietlenia a app zwykle do update i odwrotnie, przegadać to czy to jest ok
 
-# CO TO JEST TO POD USERS TAK DOKLADNIE WYJASNIC
 
 
 

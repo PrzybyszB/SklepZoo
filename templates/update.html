@@ -11,28 +11,33 @@ get_flashed_messages() %}
     </div>
 {% endfor %}
 
-{% if id == current_user.id %}
+{% if user_id == current_user.user_id %}
     <h1>Update User...</h1>
     <br/><br/>
-    ID to Update: {{ id }}
+    ID to Update: {{ user_id }}
     <br/>
-    Current ID : {{ current_user.id }}
+    Current ID : {{ current_user.user_id }}
     <br/><br/>
 <div class="shadow p-3 mb-5 bg-body-tertiary rounded">
     <form action="/dashboard" method="POST">
         {{ form.hidden_tag() }}
 
         {{ form.name.label(class="form-label") }}
-        {{ form.name( class="form-control", value = name_to_update.name) }}
+        {{ form.name( class="form-control", value = user_to_update.name) }}
         <br/>
+
+        {{ form.last_name.label(class="form-label") }}
+        {{ form.last_name( class="form-control", value = user_to_update.last_name) }}
+        <br/>
+
 
         {{ form.username.label(class="form-label") }}
-        {{ form.username( class="form-control", value = name_to_update.username) }}
+        {{ form.username( class="form-control", value = user_to_update.username) }}
         <br/>
 
 
-        {{ form.email.label(class="form-label") }}
-        {{ form.email( class="form-control", value = name_to_update.email) }}
+        {{ form.adress.label(class="form-label") }}
+        {{ form.adress( class="form-control", value = user_to_update.adress) }}
         <br/>
         
         {{ form.submit(class="btn btn-secondary") }}
