@@ -630,7 +630,10 @@ def api_login():
     password_hash = request.json.get('password', '')
 
     user = Users.query.filter_by(email=email).first()
-
+    
+    if user is None:
+        return jsonify({'error' : "That user doeasn't exist"})
+    
     if user:
         if check_password_hash(user.password_hash, password_hash):
             login_user(user)
@@ -790,16 +793,18 @@ def api_update():
         try:
             user = Users.query.filter_by(user_id=current_user.user_id).first()
             if user:
-                data = request.get_json()
-                user.name = data['name']
-                user.username = data['username']
-                user.last_name = data['last_name']
-                user.adress = data['adress']
-                db.session.commit()
+                if 'name' in request.json:
+                    user.name = request.json['name']
+                if 'username' in request.json:
+                    user.username = request.json['username']
+                if 'last_name' in request.json:
+                    user.last_name = request.json['last_name']
+                if 'adress' in request.json:
+                    user.adress = request.json['adress']
                 return jsonify({ 
                     'response' : 'user updated',
                     'user' : {
-                        "name" : user.username,
+                        "name" : user.name,
                         "username" : user.username,
                         "last_name" : user.last_name,
                         "adress" : user.adress
@@ -809,35 +814,76 @@ def api_update():
         except:
             return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
     
-    #TODO ogarnąć tego puta, zrobić tak żeby wyświetłało aktualnione dane 
 
-    # if current_user.is_authenticated:
-    #     user_id = current_user.user_id
-    #     user_to_update = Users.query.get_or_404(user_id)
-        
-    #     name = request.get_json().get('name', user_to_update.name)
-    #     last_name = request.json('last_name', user_to_update.last_name)
-    #     username = request.json('username', user_to_update.username)
-    #     address = request.json('address', user_to_update.address)
+@app.get('/api/cart')
+def api_cart():
+    cart = session.get('cart', [])
+    return jsonify({'cart' : cart}), HTTP_200_OK
 
-    #     user_to_update.name = name
-    #     user_to_update.last_name = last_name
-    #     user_to_update.username = username
-    #     user_to_update.address = address
+
+@app.post('/api/add_to_cart')
+def api_add_to_cart():
+    cart = session.get('cart', [])
+    if 'products' in request.json and isinstance(request.json['products'], list):
+            for product in request.json['products']:
+                product_id = product.get('product_id')
+                quantity = product.get('quantity')
+                product = Products.query.get(product_id)
+                if product:
+                    cart.append({'product_id': product_id, 'quantity': quantity})
+                else:
+                    return jsonify({'error' : f'Product with id {product_id} was not found'}), HTTP_404_NOT_FOUND
+    else:
+        product_id = request.json.get('product_id')
+        quantity = request.json.get('quantity')
+        product = Products.query.get(product_id)
+        if product:
+            cart.append({'product_id': product_id, 'quantity': quantity})
+        else:
+            return jsonify({'error' : f'Product with id {product_id} was not found'}), HTTP_404_NOT_FOUND
         
-    #     db.session.commit()
+    session['cart'] = cart
+        
+    return jsonify({
+        'respone' : "Products was added successfully",
+        'cart': cart}), HTTP_200_OK
+'''
+{
+    "products": [
+        {
+            "product_id": "2",
+            "quantity": "3"
+        },
+        {
+            "product_id": "4",
+            "quantity": "1"
+        }
+    ]
+}
+'''
+
+
+
+app.post('/api/update_cart')
+def api_update_cart():
+    cart = session.get('cart', [])
+    product = Products.query.order_by(Products.product_id)
     
-    # return jsonify({
-    #     "user" : {
-    #         "name" : user_to_update.name,
-    #         "last_name" : user_to_update.last_name,
-    #         "username" : user_to_update.username,
-    #         "address" : user_to_update.address
-    #     }
-    # }), HTTP_200_OK
-
-
-
+    pattern = re.compile(r"items\[(\d+)\]\[(quantity|product_id)\]")
+    cart_list = {}
+    for key in request.form.keys():
+        match = pattern.match(key)
+        if match:
+            index = int(match.group(1))
+            if index not in cart_list:
+                cart_list[index] = {}
+            cart_list[index][match.group(2)] = ((key, request.form[key]))
+    
+    for index, product_details_items in sorted(cart_list.items(), key=lambda x: int(x[0])):
+        quantity = int(product_details_items.get('quantity', 0))
+        product_id = product_details_items.get('product_id')
+    
+    return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
 
 
 
