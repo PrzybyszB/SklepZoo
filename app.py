@@ -575,7 +575,7 @@ def final_order_info():
 
 
 
-@app.route('/test', methods=['GET', 'POST'])
+@app.route('/api/test', methods=['GET', 'POST'])
 def test():
     if request.method == 'GET':
         return jsonify ({"response": "Get Request Called"})
@@ -832,7 +832,8 @@ def api_add_to_cart():
                 if product:
                     cart.append({'product_id': product_id, 'quantity': quantity})
                 else:
-                    return jsonify({'error' : f'Product with id {product_id} was not found'}), HTTP_404_NOT_FOUND
+                    return jsonify({'error' : f'Product with id {product_id} was not found',
+                                    'cart' : cart}), HTTP_404_NOT_FOUND
     else:
         product_id = request.json.get('product_id')
         quantity = request.json.get('quantity')
@@ -840,7 +841,9 @@ def api_add_to_cart():
         if product:
             cart.append({'product_id': product_id, 'quantity': quantity})
         else:
-            return jsonify({'error' : f'Product with id {product_id} was not found'}), HTTP_404_NOT_FOUND
+
+            return jsonify({'error' : f'Product with id {product_id} was not found',
+                            'cart' : cart}), HTTP_404_NOT_FOUND
         
     session['cart'] = cart
         
@@ -862,9 +865,7 @@ def api_add_to_cart():
 }
 '''
 
-
-
-app.post('/api/update_cart')
+@app.post('/api/update_cart')
 def api_update_cart():
     cart = session.get('cart', [])
     product = Products.query.order_by(Products.product_id)
@@ -884,6 +885,76 @@ def api_update_cart():
         product_id = product_details_items.get('product_id')
     
     return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
+
+
+@app.get('/api/product')
+def api_product():
+    product_id = request.json['product_id']
+    product = Products.query.filter_by(product_id = product_id).first()
+    if product is None:
+        return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND 
+    else:
+        return jsonify({
+                    'product info': {
+                        'product id' : product.product_id,
+                        'product name': product.product_name, 
+                        'cost' : product.cost,
+                        'producent' : product.producent,
+                        'category id' : product.category_id,
+                        'data added' : product.data_added.strftime("%Y-%m-%d %H:%M:%S")
+                    }}), HTTP_200_OK
+
+
+# TODO DO BYKA, KOD PO PORSTU NIE CHCIAL DZIAŁAĆ, WGL TEJ STRON NIE SZUKAŁO XD, musiałem skopiowac całego route ze strony co działało i wtedy załapało
+# app.get('/api/product')
+# def api_product():
+#     product_id = request.json['product_id']
+#     return jsonify({'respone' : product_id})
+    # product = Products.query.get(product_id = product_id)
+    # if product is None:
+    #     return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND
+    # else:
+    #     return jsonify({
+    #                 'response': "product info",
+    #                 'product': {
+    #                     'product name': product.product_name, 
+    #                     'cost' : product.cost,
+    #                     'producent' : product.producent,
+    #                     'category id' : product.category_id,
+    #                     'data added' : product.data_added
+    #                 }}), HTTP_200_OK
+
+
+@app.post('/api/order')
+def api_order():
+    cart = session.get('cart')
+
+    if not current_user.is_authenticated:
+        name = request.json['name']
+        last_name = request.json['last_name']
+        email = request.json['email']
+        adress = request.json['adress']
+    
+        customer_user = Customer(name = name,
+                                 last_name = last_name,
+                                 email = email,
+                                 adress = adress)
+        db.session.add(customer_user)
+        db.session.commit()
+        return jsonify({'respone' : 'customer was created',
+                        'customer' : {
+                            'name' : customer_user.name,
+                            'last_name' : customer_user.last_name,
+                            'email' : customer_user.email,
+                            'adress' : customer_user.adress
+                        },
+                        'cart' : cart})
+    
+    if current_user.is_authenticated:
+        user_email = current_user.email
+        return jsonify({'user' : user_email,
+                        'cart' : cart})
+
 
 
 
@@ -965,6 +1036,11 @@ praktyka
 
 
     #TODO LIST
+
+
+    # zrobić żeby customer email nie był unique, może ustawić żeby jakoś dodawało zamowienie do jego maial ?
+
+    # Zrobić że jak wbijesz stronę http://127.0.0.1:5000/order i uzupełnisz dane, zrobisz dalej i jak masz pusty koszyk to powinien wyskoczyć error ze masz pusty koszyk i nie możesz złozyc zamowienia albo cos takiego
 
     # Zmienić wszystkie adress na address
 
@@ -1074,9 +1150,8 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 
 # DO BYKA
 # Api dashbordu sluzy do wyswietlenia a app zwykle do update i odwrotnie, przegadać to czy to jest ok
-
-
-
+# zapytac czy stosuje skladnie is, not, and, is not itp
+# Python ma wbudowane http ? wystaczy dawać 200 zamiast tego mojego http_status_code /?
 
 # JWT TOKENY
 # DOCKER
