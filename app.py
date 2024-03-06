@@ -261,6 +261,7 @@ def dashboard():
                                    user_to_update = user_to_update,
                                    id = id)
 
+
 @app.route('/add_category' ,methods=['GET', 'POST'])
 @login_required
 def add_category():
@@ -320,7 +321,8 @@ def add_product():
     else:
         flash("Ooops, something went wrong")
         return redirect(url_for('dashboard'))
-    
+
+
 @app.route('/products', methods=['GET', 'POST'])
 def products():
     our_products = Products.query.order_by(Products.data_added)
@@ -360,6 +362,7 @@ def user_list():
     else:
         flash("Ooops, something went wrong")
         return redirect(url_for('dashboard'))
+
 
 @app.route('/update', methods=['GET', 'POST'])
 @login_required
@@ -791,7 +794,7 @@ def api_update():
     
     if current_user.is_authenticated:
         try:
-            user = Users.query.filter_by(user_id=current_user.user_id).first()
+            user = Users.query.get(current_user.user_id)
             if user:
                 if 'name' in request.json:
                     user.name = request.json['name']
@@ -810,7 +813,6 @@ def api_update():
                         "adress" : user.adress
 
                     }}), HTTP_200_OK
-            return jsonify({'resposne' : 'user not found'}), HTTP_404_NOT_FOUND
         except:
             return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
     
@@ -865,27 +867,48 @@ def api_add_to_cart():
 }
 '''
 
+
 @app.post('/api/update_cart')
 def api_update_cart():
     cart = session.get('cart', [])
-    product = Products.query.order_by(Products.product_id)
-    
-    pattern = re.compile(r"items\[(\d+)\]\[(quantity|product_id)\]")
-    cart_list = {}
-    for key in request.form.keys():
-        match = pattern.match(key)
-        if match:
-            index = int(match.group(1))
-            if index not in cart_list:
-                cart_list[index] = {}
-            cart_list[index][match.group(2)] = ((key, request.form[key]))
-    
-    for index, product_details_items in sorted(cart_list.items(), key=lambda x: int(x[0])):
-        quantity = int(product_details_items.get('quantity', 0))
-        product_id = product_details_items.get('product_id')
-    
-    return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
 
+    if isinstance(request.json, list):
+        for item in request.json:
+            if 'product_id' in item and 'quantity' in item:
+                product_id = item['product_id']
+                quantity = item['quantity']
+                product_found = False
+                for key in cart:
+                    if key['product_id'] == product_id:
+                        key['quantity'] = quantity
+                        product_found = True
+                if not product_found:
+                    return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
+    elif isinstance(request.json, dict):
+        if 'product_id' in request.json and 'quantity' in request.json:
+            product_id = request.json['product_id']
+            quantity = request.json['quantity']
+            product_found = False
+            for key in cart:
+                if key['product_id'] == product_id:
+                    key['quantity'] = quantity
+                    product_found = True
+            if not product_found:
+                return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
+    session['cart'] = cart
+    session.modified = True
+    return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
+#     [
+#         {
+#             "product_id": 4,
+#             "quantity": 5
+#         },
+#         {
+#             "product_id": 4,
+#             "quantity": 5
+#         }
+#     ]
+# }
 
 @app.get('/api/product')
 def api_product():
@@ -903,26 +926,6 @@ def api_product():
                         'category id' : product.category_id,
                         'data added' : product.data_added.strftime("%Y-%m-%d %H:%M:%S")
                     }}), HTTP_200_OK
-
-
-# TODO DO BYKA, KOD PO PORSTU NIE CHCIAL DZIAŁAĆ, WGL TEJ STRON NIE SZUKAŁO XD, musiałem skopiowac całego route ze strony co działało i wtedy załapało
-# app.get('/api/product')
-# def api_product():
-#     product_id = request.json['product_id']
-#     return jsonify({'respone' : product_id})
-    # product = Products.query.get(product_id = product_id)
-    # if product is None:
-    #     return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND
-    # else:
-    #     return jsonify({
-    #                 'response': "product info",
-    #                 'product': {
-    #                     'product name': product.product_name, 
-    #                     'cost' : product.cost,
-    #                     'producent' : product.producent,
-    #                     'category id' : product.category_id,
-    #                     'data added' : product.data_added
-    #                 }}), HTTP_200_OK
 
 
 @app.post('/api/order')
@@ -1037,6 +1040,7 @@ praktyka
 
     #TODO LIST
 
+    # slugi ogarnąć dokładnie
 
     # zrobić żeby customer email nie był unique, może ustawić żeby jakoś dodawało zamowienie do jego maial ?
 
@@ -1073,6 +1077,7 @@ praktyka
     # dodać maxlength do inputow, ktore dotycza kolumn z ogranizczona liczba znakow
 
     # dodac walidacje danych otrzymywanych z frontu, zeby np. jako ilosc nie móc podać "aaaeee"
+
 
 '''
 Po zrobieniu api zrobić autoryzacje i token lata po froncie
@@ -1157,3 +1162,35 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 # DOCKER
 # mcertyfikat SSL zeby po https lecialo
 # content pod seo  jak powinien wygladac
+
+"""
+Przykładowe zastosowania/pomysły REST API
+
+Kategorie:
+    - Sucha karma
+    - Mokra karma
+    - Zabawki
+
+/api/category/ [ GET ]
+- GET = pokaż wszystkie kategorie
+
+/api/category/<nazwa_kategorii> [ POST | DELETE]
+- POST = dodaje nową kategorie
+- DELETE = usuwa daną kategorie
+
+/api/<nazwa_kategorii>/product [ GET | POST | DELETE ]
+- GET = pokaż wszystkie produkty danej kategorii
+- POST = dodaj nowy produkt do danej kategorii
+- DELETE = usuń produkt z danej kategorii
+
+/api/product/<id> [GET | DELETE ]
+- GET = pokaż produkt, kategorie etc.
+- DELETE = usuń produkt z danej kategorii
+
+/api/product/ [ GET (localhost:5000/api/product?price_low=10&price_high=50) | POST | DELETE ] / filtrowanie produktów ?
+- GET = pokaż produkty, możliwe filtrowanie
+- POST = dodaj produkt
+- DELETE = usuń produkty
+
+"""
+
