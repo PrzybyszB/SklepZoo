@@ -517,7 +517,7 @@ def orders_detail(user_email):
                 'ilosc': quantity,
                 'cena_za_produkt': product.cost,
                 'suma': total_product_cost}
-            print(product_in_cart)
+            
 
     total_cost = sum(products_cost)
     order.total_cost = total_cost
@@ -868,10 +868,10 @@ def api_add_to_cart():
 '''
 
 
-@app.post('/api/update_cart')
+@app.route('/api/update_cart', methods = ['PUT'])
 def api_update_cart():
     cart = session.get('cart', [])
-
+    # If request is a list (more than one product)
     if isinstance(request.json, list):
         for item in request.json:
             if 'product_id' in item and 'quantity' in item:
@@ -884,6 +884,8 @@ def api_update_cart():
                         product_found = True
                 if not product_found:
                     return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
+    
+    # If request is a dict (one product)
     elif isinstance(request.json, dict):
         if 'product_id' in request.json and 'quantity' in request.json:
             product_id = request.json['product_id']
@@ -898,17 +900,7 @@ def api_update_cart():
     session['cart'] = cart
     session.modified = True
     return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
-#     [
-#         {
-#             "product_id": 4,
-#             "quantity": 5
-#         },
-#         {
-#             "product_id": 4,
-#             "quantity": 5
-#         }
-#     ]
-# }
+
 
 @app.get('/api/product')
 def api_product():
@@ -928,6 +920,7 @@ def api_product():
                     }}), HTTP_200_OK
 
 
+# TODO opinie Stajkiego, zostaje order czy customer_creator i order2
 @app.post('/api/order')
 def api_order():
     cart = session.get('cart')
@@ -957,6 +950,148 @@ def api_order():
         user_email = current_user.email
         return jsonify({'user' : user_email,
                         'cart' : cart})
+
+
+@app.post('/api/customer_creator')
+def api_customer_creator():
+    if not current_user.is_authenticated:
+        name = request.json['name']
+        last_name = request.json['last_name']
+        email = request.json['email']
+        adress = request.json['adress']
+
+        if not validators.email(email):
+            return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
+
+        customer_user = Customer(name = name,
+                                 last_name = last_name,
+                                 email = email,
+                                 adress = adress)
+        db.session.add(customer_user)
+        db.session.commit()
+        return jsonify({'respone' : 'customer was created',
+                        'customer' : {
+                            'name' : customer_user.name,
+                            'last_name' : customer_user.last_name,
+                            'email' : customer_user.email,
+                            'adress' : customer_user.adress
+                        }})
+    return jsonify({'error' : "You cant create a customer when u are log in"}), HTTP_400_BAD_REQUEST
+
+
+@app.post('/api/order2')
+def api_order2():
+    if current_user.is_authenticated:
+        if current_user:
+            user_id = current_user.user_id
+            customer_id = None
+
+    if not current_user.is_authenticated:
+        customer_id = request.json['customer_id']
+        customer = Customer.query.get(customer_id)
+        if customer is None:
+            return jsonify({'error' : "That customer doeasn't exist"})
+        else:
+            user_id = None
+     
+    order = Orders(user_id=user_id, customer_id=customer_id, total_cost=0)
+    db.session.add(order)
+    db.session.commit()
+    return jsonify({'response' : " Order was succesfully added",
+                    'order' : { 
+                        'order_id' : order.order_id,
+                        'user_id' : order.user_id,
+                        'customer_id' : order.customer_id,
+                        'total_cost' : order.total_cost
+                     }}), HTTP_200_OK
+
+
+@app.post('/api/order_detail')
+def api_order_detail():
+    cart = session.get('cart')
+    products_cost =[]
+    product_in_cart = {}
+    total_cost = 0
+    order_id = request.json['order_id']
+    order = Orders.query.get(order_id)
+
+    for item in cart:
+        if cart == []:
+            return jsonify({'error' : "Yours cart is empty"}), HTTP_404_NOT_FOUND
+        
+        product_id = int(item['product_id'])
+        quantity = int(item['quantity'])
+        product = Products.query.get(product_id)
+
+        if product:
+            total_product_cost = product.cost * quantity
+            products_cost.append(total_product_cost)
+
+            order_detail = Orders_detail(
+                            order_id=order.order_id,
+                            product_id=product_id,
+                            quantity_of_product=quantity)
+            
+            db.session.add(order_detail)
+            product_in_cart[product_id] = {
+                'ilosc': quantity,
+                'cena_za_produkt': product.cost,
+                'suma': total_product_cost}
+            
+
+    total_cost = sum(products_cost)
+    order.total_cost = total_cost
+    db.session.commit()
+    
+
+    return jsonify({'response' : " Order_detail was succesfully added",
+                    'order_detail' : { 
+                        'order_id' :  order_detail.order_id,
+                        'product_id' : order_detail.product_id,
+                        'quantity_of_product' : order_detail.quantity_of_product,
+                        'total_cost' : order.total_cost
+                     }}), HTTP_200_OK
+
+# TODO BEZ AJAXA ciezko ? 
+# @app.post('/api/payment/<int:order_id>')
+# def api_payment(order_id):
+#     order_id = request.json['order_id']
+#     order = Orders.query.get(order_id)
+   
+#     # Customer info, stripe token 4242 4242 4242 4242
+#     customer = stripe.Customer.create(email =  request.json['stripeEmail'],
+#                                       source = request.json['stripeToken'])
+    
+#     # Payment info
+#     charge = stripe.Charge.create(
+#         customer = customer.id,
+#         amount=order.total_cost,
+#         currency='usd',
+#         description='Płatność'
+#     )
+
+#     return jsonify({'response' : "Payment was success",
+#                     'total_cost' : charge.amount}), HTTP_200_OK
+
+@app.get('/api/summary')
+def api_summary():
+    cart = session.get('cart')
+    order_id = request.json['order_id']
+    order = Orders.query.get(order_id)
+
+    return jsonify({'response' : 'Order summary',
+                    'cart' : cart,
+                    'order' : { 
+                        'order_id' : order.order_id,
+                        'user_id' : order.user_id,
+                        'customer_id' : order.customer_id,
+                        'total_cost' : order.total_cost
+                     }}), HTTP_200_OK
+
+
+
+
+
 
 
 
@@ -1154,9 +1289,10 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 
 
 # DO BYKA
-# Api dashbordu sluzy do wyswietlenia a app zwykle do update i odwrotnie, przegadać to czy to jest ok
-# zapytac czy stosuje skladnie is, not, and, is not itp
-# Python ma wbudowane http ? wystaczy dawać 200 zamiast tego mojego http_status_code /?
+
+# DO STAJKIEGO
+# api order ma za zadanie być 1:1 taki jak @app.route('/order') ? REST API maja wykonywac te same czynności co cruodwa apka czy bedzie to inaczej rozpisane i np powinienem to rozdzielić na create_customer i samą stronę order która będzie miała za zadanie zobaczyć czy jestes customerem czy userem i stworzy order na tej podstawie
+
 
 # JWT TOKENY
 # DOCKER
