@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+{{ category_name }}
+</br>
+<table class="table table-hover table-bordered table-striped">  
+    {% for product in category_list %}
+        <tr>
+        <td>
+        {{ product.id }}.
+        {{ product.product_name }}-
+        {{ product.producent }} - 
+        {{ product.cost }} -
+        {{ product.data_added }}
+        {{ product.category_id }}
+        </br>
+        </td>
+        </tr>
+    {% endfor %}
+    
+
+
+{% endblock %}

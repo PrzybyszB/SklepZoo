@@ -31,11 +31,29 @@ get_flashed_messages() %}
 
         {{ form.email.label(class="form-label") }}
         {{ form.email( class="form-control") }}
+        {% if form.email.errors %}
+            {% for error in form.email.errors %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" >
+                    {{ error }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>   
+                </div>
+            {% endfor %}
+        {% endif %}
         <br/>
 
 
         {{ form.password_hash.label(class="form-label") }}
         {{ form.password_hash( class="form-control") }}
+        {% if form.password_hash.errors %}
+        {% for error in form.password_hash.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" >
+                {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+
         <br/>
 
         {{ form.password_hash2.label(class="form-label") }}

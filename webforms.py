@@ -17,10 +17,10 @@ class LoginForm(FlaskForm):
 class UserForm(FlaskForm):
     name =  StringField("Imię", validators=[DataRequired()])
     username = StringField("Username", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired(), Email(message="Invalid email address")])
+    email = StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email")])
     last_name = StringField("Nazwisko", validators=[Optional()])
-    adress = StringField("Adres", validators=[Optional()])
-    password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match!')])
+    address = StringField("Adres", validators=[Optional()])
+    password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Hasła nie są takie same!')])
     password_hash2 = PasswordField("Potwierdź hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
@@ -42,6 +42,7 @@ class ProductForm(FlaskForm):
 
 class CategoryForm(FlaskForm):
     category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
+    category_slug = StringField("Nazwa Kategorii", validators=[DataRequired()])
     submit = SubmitField("Dodaj Kategorie")
 
 class Order_detailForm(FlaskForm):
@@ -53,5 +54,5 @@ class CustomerForm(FlaskForm):
     email =  StringField("Email", validators=[DataRequired()]) 
     name = StringField("Imię", validators=[DataRequired()]) 
     last_name =StringField("Nazwisko", validators=[DataRequired()]) 
-    adress = StringField("Adres", validators=[DataRequired()]) 
+    address = StringField("Adres", validators=[DataRequired()]) 
     submit = SubmitField("Dalej")

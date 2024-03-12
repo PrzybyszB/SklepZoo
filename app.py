@@ -36,7 +36,7 @@ class Users(db.Model, UserMixin):
     name = db.Column(db.String(200), nullable=False)
     last_name = db.Column(db.String(200), nullable=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
-    adress = db.Column(db.String(120), nullable=True)
+    address = db.Column(db.String(120), nullable=True)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
@@ -87,6 +87,7 @@ class Users(db.Model, UserMixin):
 class Category(db.Model):
     category_id = db.Column(db.Integer, primary_key=True, index=True)
     category_name =db.Column(db.String(50), unique=True, nullable=False)
+    category_slug =db.Column(db.String(50), unique=True, nullable=False)
     products_relationship = db.relationship('Products', backref='category', lazy=True)
 
 class Products(db.Model):
@@ -115,10 +116,10 @@ class Orders_detail(db.Model):
     
 class Customer(db.Model):
     customer_id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), nullable=True, unique=False)
+    email = db.Column(db.String(120), nullable=True)
     name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
-    adress = db.Column(db.String(120), nullable=False)
+    address = db.Column(db.String(120), nullable=False)
     order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
 
 # Flask admin view, username = Admin, password = 123, email = Admin@email.com, user_id = 1
@@ -187,7 +188,7 @@ def add_user():
                          username = form.username.data, 
                          email = form.email.data, 
                          password_hash=hashed_pw,
-                         adress = None,
+                         address = None,
                          last_name = None)
             db.session.add(user)
             db.session.commit()
@@ -243,7 +244,7 @@ def dashboard():
         user_to_update.name = request.form['name']
         user_to_update.last_name = request.form['last_name']
         user_to_update.username = request.form['username']
-        user_to_update.adress = request.form['adress']
+        user_to_update.address = request.form['address']
         try:
             db.session.commit()
             flash("Users Updated Successfully")
@@ -289,6 +290,16 @@ def add_category():
         return redirect(url_for('dashboard'))
 
 
+@app.route('/category/<category_slug>' ,methods=['GET', 'POST'])
+def category(category_slug):
+    category = Category.query.filter_by(category_slug = category_slug).first()
+    category_list = Products.query.filter_by(category_id = category.category_id )
+    category_name = category.category_name
+    
+    return render_template('category.html', 
+                           category_list=category_list,
+                           category_name = category_name)
+
 @app.route('/add-product' ,methods=['GET', 'POST'])
 @login_required
 def add_product():
@@ -328,27 +339,6 @@ def products():
     our_products = Products.query.order_by(Products.data_added)
     return render_template('products.html', 
                            our_products=our_products)
-
-
-@app.route('/sucha_karma', methods=['GET', 'POST'])
-def sucha_karma():
-    dry_foods = Products.query.filter_by(category_id = 1 )
-    return render_template('sucha_karma.html', 
-                           dry_foods=dry_foods,)
-
-
-@app.route('/mokra_karma', methods=['GET', 'POST'])
-def mokra_karma():
-    wet_foods = Products.query.filter_by(category_id = 2 )
-    return render_template('mokra_karma.html', 
-                           wet_foods=wet_foods,)
-
-
-@app.route('/zabawki', methods=['GET', 'POST'])
-def zabawki():
-    toys = Products.query.filter_by(category_id = 3 )
-    return render_template('zabawki.html', 
-                           toys=toys,)
 
 
 @app.route('/user-list', methods=['GET', 'POST'])
@@ -466,7 +456,7 @@ def order():
             customer_user = Customer(email = customer_form.email.data,
                                   name = customer_form.name.data,
                                   last_name = customer_form.last_name.data,
-                                  adress = customer_form.adress.data)
+                                  address = customer_form.address.data)
             db.session.add(customer_user)
             db.session.commit()
             user_email = customer_form.email.data
@@ -488,6 +478,10 @@ def orders_detail(user_email):
     customer = Customer.query.filter_by(email = user_email).first()
     user = Users.query.filter_by(email = user_email).first()
     
+    if cart == None:
+        flash("Your cart is empty, choose products")
+        return redirect(url_for('products'))
+
     if user:
         user_id = user.user_id
         customer_id = None
@@ -596,7 +590,7 @@ def api_add_user():
     email = request.json['email']
     password = request.json['password']
     password2 = request.json['password2']
-    adress = request.json['adress']
+    address = request.json['address']
     
     if not validators.email(email):
         return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
@@ -614,7 +608,7 @@ def api_add_user():
                  username=username, 
                  email=email, 
                  password=pwd_hash, 
-                 adress=adress )
+                 address=address )
     
     db.session.add(user)
     db.session.commit()
@@ -635,7 +629,7 @@ def api_login():
     user = Users.query.filter_by(email=email).first()
     
     if user is None:
-        return jsonify({'error' : "That user doeasn't exist"})
+        return jsonify({'error' : "That user doeasn't exist"}), HTTP_400_BAD_REQUEST
     
     if user:
         if check_password_hash(user.password_hash, password_hash):
@@ -668,7 +662,7 @@ def api_dashboard():
             'user':{
                 'username' : current_user.username,
                 'email' : current_user.email,
-                'adress' : current_user.adress,
+                'address' : current_user.address,
                 'last_name' : current_user.last_name,
             }
         }), HTTP_200_OK
@@ -683,14 +677,17 @@ def api_add_category():
         id = current_user.user_id
         if id == 1:
             category_name = request.json['category_name']
+            category_slug = request.json['category_slug']
             check_exist_category =  Category.query.filter_by(category_name=category_name).first()
             if check_exist_category is None:
-                new_category = Category(category_name = category_name)
+                new_category = Category(category_name = category_name,
+                                        category_slug = category_slug)
                 db.session.add(new_category)
                 db.session.commit()
                 return jsonify({
                     'message': 'Category created',
-                    'category' : category_name
+                    'category_name' : category_name,
+                    'category_slug' : category_slug
                 }),  HTTP_201_CREATED
             else:
                 return jsonify({'error' : " This category is already exist"}), HTTP_409_CONFLICT 
@@ -771,21 +768,20 @@ def api_user_list():
                 name = our_user.name
                 last_name = our_user.last_name
                 email = our_user.email
-                adress = our_user.adress
+                address = our_user.address
 
                 user_list.append({
                     "username" : username,
                     "name" : name,
                     "last_name" : last_name,
                     "email" : email,
-                    "adress" : adress})
+                    "address" : address})
             
             return jsonify({"user list" : user_list}), HTTP_200_OK
         
         
         else:
             return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
-
 
 @app.route('/api/update', methods=['PUT'])
 def api_update():
@@ -802,15 +798,15 @@ def api_update():
                     user.username = request.json['username']
                 if 'last_name' in request.json:
                     user.last_name = request.json['last_name']
-                if 'adress' in request.json:
-                    user.adress = request.json['adress']
+                if 'address' in request.json:
+                    user.address = request.json['address']
                 return jsonify({ 
                     'response' : 'user updated',
                     'user' : {
                         "name" : user.name,
                         "username" : user.username,
                         "last_name" : user.last_name,
-                        "adress" : user.adress
+                        "address" : user.address
 
                     }}), HTTP_200_OK
         except:
@@ -822,7 +818,7 @@ def api_cart():
     cart = session.get('cart', [])
     return jsonify({'cart' : cart}), HTTP_200_OK
 
-
+#TODO zrobic tylko jedna array z jednym produktem i elo, wyjebac po else i zmienic jsona
 @app.post('/api/add_to_cart')
 def api_add_to_cart():
     cart = session.get('cart', [])
@@ -921,35 +917,35 @@ def api_product():
 
 
 # TODO opinie Stajkiego, zostaje order czy customer_creator i order2
-@app.post('/api/order')
-def api_order():
-    cart = session.get('cart')
+# @app.post('/api/order')
+# def api_order():
+#     cart = session.get('cart')
 
-    if not current_user.is_authenticated:
-        name = request.json['name']
-        last_name = request.json['last_name']
-        email = request.json['email']
-        adress = request.json['adress']
+#     if not current_user.is_authenticated:
+#         name = request.json['name']
+#         last_name = request.json['last_name']
+#         email = request.json['email']
+#         address = request.json['address']
     
-        customer_user = Customer(name = name,
-                                 last_name = last_name,
-                                 email = email,
-                                 adress = adress)
-        db.session.add(customer_user)
-        db.session.commit()
-        return jsonify({'respone' : 'customer was created',
-                        'customer' : {
-                            'name' : customer_user.name,
-                            'last_name' : customer_user.last_name,
-                            'email' : customer_user.email,
-                            'adress' : customer_user.adress
-                        },
-                        'cart' : cart})
+#         customer_user = Customer(name = name,
+#                                  last_name = last_name,
+#                                  email = email,
+#                                  address = address)
+#         db.session.add(customer_user)
+#         db.session.commit()
+#         return jsonify({'respone' : 'customer was created',
+#                         'customer' : {
+#                             'name' : customer_user.name,
+#                             'last_name' : customer_user.last_name,
+#                             'email' : customer_user.email,
+#                             'address' : customer_user.address
+#                         },
+#                         'cart' : cart})
     
-    if current_user.is_authenticated:
-        user_email = current_user.email
-        return jsonify({'user' : user_email,
-                        'cart' : cart})
+#     if current_user.is_authenticated:
+#         user_email = current_user.email
+#         return jsonify({'user' : user_email,
+#                         'cart' : cart})
 
 
 @app.post('/api/customer_creator')
@@ -958,7 +954,7 @@ def api_customer_creator():
         name = request.json['name']
         last_name = request.json['last_name']
         email = request.json['email']
-        adress = request.json['adress']
+        address = request.json['address']
 
         if not validators.email(email):
             return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
@@ -966,7 +962,7 @@ def api_customer_creator():
         customer_user = Customer(name = name,
                                  last_name = last_name,
                                  email = email,
-                                 adress = adress)
+                                 address = address)
         db.session.add(customer_user)
         db.session.commit()
         return jsonify({'respone' : 'customer was created',
@@ -974,30 +970,36 @@ def api_customer_creator():
                             'name' : customer_user.name,
                             'last_name' : customer_user.last_name,
                             'email' : customer_user.email,
-                            'adress' : customer_user.adress
+                            'address' : customer_user.address
                         }})
     return jsonify({'error' : "You cant create a customer when u are log in"}), HTTP_400_BAD_REQUEST
 
 
-@app.post('/api/order2')
-def api_order2():
-    if current_user.is_authenticated:
-        if current_user:
-            user_id = current_user.user_id
-            customer_id = None
+@app.post('/api/order')
+def api_order():
+    user_id = None
+    customer_id = None
 
-    if not current_user.is_authenticated:
+    if current_user.is_authenticated:
+        user_id = current_user.user_id
+    else:
         customer_id = request.json['customer_id']
         customer = Customer.query.get(customer_id)
         if customer is None:
-            return jsonify({'error' : "That customer doeasn't exist"})
-        else:
-            user_id = None
-     
+            return jsonify({'error' : "That customer doesn't exist"}), HTTP_400_BAD_REQUEST
+    
+    cart = session.get('cart')
+    if cart is None:
+        return jsonify({'error' : "Your cart is empty"}), HTTP_200_OK
+    
+    if cart is not cart:
+        return jsonify({'error' : "Cart doesn't exist"}), HTTP_400_BAD_REQUEST
+    
     order = Orders(user_id=user_id, customer_id=customer_id, total_cost=0)
     db.session.add(order)
     db.session.commit()
-    return jsonify({'response' : " Order was succesfully added",
+    
+    return jsonify({'response' : "Order was successfully added",
                     'order' : { 
                         'order_id' : order.order_id,
                         'user_id' : order.user_id,
@@ -1175,29 +1177,11 @@ praktyka
 
     #TODO LIST
 
-    # slugi ogarnąć dokładnie
-
-    # zrobić żeby customer email nie był unique, może ustawić żeby jakoś dodawało zamowienie do jego maial ?
-
-    # Zrobić że jak wbijesz stronę http://127.0.0.1:5000/order i uzupełnisz dane, zrobisz dalej i jak masz pusty koszyk to powinien wyskoczyć error ze masz pusty koszyk i nie możesz złozyc zamowienia albo cos takiego
-
-    # Zmienić wszystkie adress na address
-
-    # Dodać do update adress i drugie imie
+    # slugi ogarnąć w api
 
     # Ogarnąć pętle loop do product form odnośnie category id i odpowiadającej nazwie w select field, coś na zasadzie for id in Category.query.all() id = Category.category_id, name = Category.category_name i iterować ze 1 to Sucha karma, 2 to Mokra etc. Zmienić bazę danych z nazwy category ID na Cateogry name FK, żeby podawać nie ID tylko nazwę która jest unique i dla forntu będzie czytelniejsza, później w całym kodzie zmienić category_id na category_name w odpowiednich miejscach
 
-    # Ogarnąć żeby do kategori był jeden template i żeby wykrywał po slugu co ma wyświetlić, ogarnąć sluga z bazą danych ??
-
-    # Ogarnąc info że  mail nie spełnia warunków maila przy rejestracji 
-
-    # Ogarnąć rejestracje, na zasadzie żeby login nie miał pustych miejsc, żeby hasło było odpowiednio długie itp 
-
     # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
-    
-    # Zrobić w panelu Admina, żeby home cofało do strony głównej strony a nie panelu
-
-    # BACKUP bazy danych zrobić (skopiować sobie po zrobieniu bazy userów i produktów) 
     
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
        
@@ -1206,8 +1190,6 @@ praktyka
     # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
 
     # ogarnąc żeby przy logowaniu nie było widac hasła gołym okiem w zbadaj źródło, payload (zoabczyc HTTPS co i jak, self certyfiakt 509)
-
-    # RABBITMQ
 
     # dodać maxlength do inputow, ktore dotycza kolumn z ogranizczona liczba znakow
 
@@ -1293,7 +1275,7 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 # DO STAJKIEGO
 # api order ma za zadanie być 1:1 taki jak @app.route('/order') ? REST API maja wykonywac te same czynności co cruodwa apka czy bedzie to inaczej rozpisane i np powinienem to rozdzielić na create_customer i samą stronę order która będzie miała za zadanie zobaczyć czy jestes customerem czy userem i stworzy order na tej podstawie
 
-
+# zawsze liczba mnoga w linkach w route a potem single rzecz po id /api/products     api/products/1
 # JWT TOKENY
 # DOCKER
 # mcertyfikat SSL zeby po https lecialo
