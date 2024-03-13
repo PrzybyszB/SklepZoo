@@ -34,7 +34,7 @@ class PasswordForm(FlaskForm):
 class ProductForm(FlaskForm):
     product_name = StringField("Nazwa Produktu", validators=[DataRequired()])
     cost = IntegerField("Koszt", validators=[DataRequired()])
-    producent = StringField("Producent", validators=[DataRequired()])
+    producer = StringField("Producent", validators=[DataRequired()])
     submit = SubmitField("Dodaj Produkt")
     category_id = SelectField(u'Kategoria', choices=[('1', 'Sucha Karma'), 
                                                        ('2', 'Mokra Karma'),
@@ -42,7 +42,7 @@ class ProductForm(FlaskForm):
 
 class CategoryForm(FlaskForm):
     category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
-    category_slug = StringField("Nazwa Kategorii", validators=[DataRequired()])
+    category_slug = StringField("Slug Kategorii", validators=[DataRequired()])
     submit = SubmitField("Dodaj Kategorie")
 
 class Order_detailForm(FlaskForm):

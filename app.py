@@ -94,11 +94,13 @@ class Products(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(200), nullable=False, unique=True)
     cost = db.Column(db.Integer, nullable=True)
-    producent = db.Column(db.String(200), nullable=False)
+    producer = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted_at = db.Column(db.DateTime)
     # TODO category_name = db.Column(db.Integer, db.ForeignKey('category.category_name'), nullable=False,)
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
     order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
+    
 
 class Orders(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
@@ -120,6 +122,7 @@ class Customer(db.Model):
     name = db.Column(db.String(120), nullable=False)
     last_name = db.Column(db.String(120), nullable=False)
     address = db.Column(db.String(120), nullable=False)
+    deleted_at = db.Column(db.DateTime)
     order_detail_relationship = db.relationship('Orders', backref='customer', lazy=True)
 
 # Flask admin view, username = Admin, password = 123, email = Admin@email.com, user_id = 1
@@ -271,14 +274,16 @@ def add_category():
         category_name = None
         form = CategoryForm()
         if form.validate_on_submit():
-            check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
+            check_exist_category =  Category.query.filter_by(category_name=form.category_name.data, deleted_at=None).first()
             if check_exist_category is None:
-                new_category = Category(category_name = form.category_name.data)
+                new_category = Category(category_name = form.category_name.data,
+                                        category_slug = form.category_slug.data)
                 
                 db.session.add(new_category)
                 db.session.commit()
             category_name = form.category_name.data
             form.category_name.data = ''
+            form.category_slug.data = ''
             flash("Category Added Successfully")
         category_list = Category.query.order_by(Category.category_id)
         return render_template('add_category.html', 
@@ -292,8 +297,8 @@ def add_category():
 
 @app.route('/category/<category_slug>' ,methods=['GET', 'POST'])
 def category(category_slug):
-    category = Category.query.filter_by(category_slug = category_slug).first()
-    category_list = Products.query.filter_by(category_id = category.category_id )
+    category = Category.query.filter_by(category_slug = category_slug, deleted_at=None).first()
+    category_list = Products.query.filter_by(category_id = category.category_id, deleted_at=None )
     category_name = category.category_name
     
     return render_template('category.html', 
@@ -309,11 +314,11 @@ def add_product():
         product_name = None
         form = ProductForm()
         if form.validate_on_submit():
-            product = Products.query.filter_by(product_name=form.product_name.data).first()
+            product = Products.query.filter_by(product_name=form.product_name.data, deleted_at=None).first()
             if product is None:
                 product = Products(product_name=form.product_name.data,
                                 cost = form.cost.data,
-                                    producent = form.producent.data,
+                                    producer = form.producer.data,
                                     category_id = form.category_id.data)
                 
                 db.session.add(product)
@@ -321,10 +326,10 @@ def add_product():
             product_name = form.product_name.data
             form.product_name.data = ''
             form.cost.data = ''
-            form.producent.data = ''
+            form.producer.data = ''
             form.category_id.data = ''
             flash("Product Added Successfully")
-        our_products = Products.query.order_by(Products.data_added)
+        our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added)
         return render_template('add_product.html', 
                             form=form,
                             product_name=product_name,
@@ -336,7 +341,7 @@ def add_product():
 
 @app.route('/products', methods=['GET', 'POST'])
 def products():
-    our_products = Products.query.order_by(Products.data_added)
+    our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added)
     return render_template('products.html', 
                            our_products=our_products)
 
@@ -411,7 +416,7 @@ def product(product_id):
     form1 = ProductForm()
     form2 = Order_detailForm()
     product = Products.query.get_or_404(product_id)
-    # product = Products(product_id=product_id, product_name='Produkt1', cost=11, producent="Producent1", category_id=1)
+    # product = Products(product_id=product_id, product_name='Produkt1', cost=11, producer="producer1", category_id=1)
     
     if request.method == "POST":
         quantity = int(request.form.get('quantity_of_product'))
@@ -495,7 +500,7 @@ def orders_detail(user_email):
     for item in cart:
         product_id = int(item['product_id'])
         quantity = int(item['quantity'])
-        product = Products.query.get(product_id)
+        product = Products.query.filter_by(id=product_id, deleted_at=None).first()
 
         if product:
             total_product_cost = product.cost * quantity
@@ -653,7 +658,7 @@ def api_logout():
         return jsonify({'response' : "You have been logged out"}), HTTP_200_OK
 
 
-@app.get('/api/dashboard')
+@app.get('/api/user')
 def api_dashboard():
     if not current_user.is_authenticated:
         return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED 
@@ -667,8 +672,37 @@ def api_dashboard():
             }
         }), HTTP_200_OK
 
+@app.route('/api/user', methods=['PUT'])
+def api_update():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
+    
+    if current_user.is_authenticated:
+        try:
+            user = Users.query.get(current_user.user_id)
+            if user:
+                if 'name' in request.json:
+                    user.name = request.json['name']
+                if 'username' in request.json:
+                    user.username = request.json['username']
+                if 'last_name' in request.json:
+                    user.last_name = request.json['last_name']
+                if 'address' in request.json:
+                    user.address = request.json['address']
+                return jsonify({ 
+                    'response' : 'user updated',
+                    'user' : {
+                        "name" : user.name,
+                        "username" : user.username,
+                        "last_name" : user.last_name,
+                        "address" : user.address
 
-@app.post('/api/add_category')
+                    }}), HTTP_200_OK
+        except:
+            return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
+    
+
+@app.post('/api/category')
 def api_add_category():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -678,7 +712,7 @@ def api_add_category():
         if id == 1:
             category_name = request.json['category_name']
             category_slug = request.json['category_slug']
-            check_exist_category =  Category.query.filter_by(category_name=category_name).first()
+            check_exist_category =  Category.query.filter_by(category_name=category_name, deleted_at=None).first()
             if check_exist_category is None:
                 new_category = Category(category_name = category_name,
                                         category_slug = category_slug)
@@ -695,7 +729,43 @@ def api_add_category():
             return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
 
 
-@app.post('/api/add_product')
+@app.delete('/api/category')
+def api_delete_category():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
+
+    if current_user.is_authenticated:
+        id = current_user.user_id
+        if id == 1:
+            category_id = request.json['category_id']
+            category_to_delete = Category.query.get(category_id)
+            if category_to_delete is None:
+                return jsonify({'error' : f'This category with ID: {category_id} does not exist'})
+            db.session.delete(category_to_delete)
+            db.session.commit()
+
+            return jsonify({'response' : "Category was deleted"}), HTTP_200_OK
+        else:
+            return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
+    
+
+@app.get('/api/category')
+def api_category_list():
+    our_categories = Category.query.order_by(Category.category_id).all()
+    category_list = []
+
+    for our_category in our_categories:
+        category_name = our_category.category_name
+        category_slug = our_category.category_slug
+        category_id = our_category.category_id
+        category_list.append({
+                    "category_name" : category_name,
+                    "category_slug" : category_slug,
+                    "category_id" : category_id})
+    return jsonify({"category_list" : category_list}), HTTP_200_OK
+
+
+@app.post('/api/product')
 def api_add_product():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -705,17 +775,17 @@ def api_add_product():
         if id == 1:
             product_name = request.json['product_name']
             cost = request.json['cost']
-            producent = request.json['producent']
+            producer = request.json['producer']
             category_id = request.json['category_id']
             
-            if Category.query.filter_by(category_id=category_id).first() is None:
+            if Category.query.filter_by(category_id=category_id, deleted_at=None).first() is None:
                 return jsonify({'error': "This category doesn't exist"}), HTTP_409_CONFLICT
             
-            check_exist_product = Products.query.filter_by(product_name=product_name).first()
+            check_exist_product = Products.query.filter_by(product_name=product_name, deleted_at=None).first()
             if check_exist_product is None:
                 new_product = Products(product_name=product_name,
                                         cost = cost,
-                                        producent = producent,
+                                        producer = producer,
                                         category_id = category_id)
                 db.session.add(new_product)
                 db.session.commit()
@@ -724,7 +794,7 @@ def api_add_product():
                     'product' : {
                                 "product name" : product_name,
                                 "cost" : cost,
-                                "producent" : producent,
+                                "producer" : producer,
                                 "category id" : category_id
                     }
                 }),  HTTP_201_CREATED
@@ -732,27 +802,65 @@ def api_add_product():
             return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
 
 
-@app.get('/api/products')
+@app.delete('/api/product')
+def api_delete_product():
+    if not current_user.is_authenticated:
+        return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
+
+    if current_user.is_authenticated:
+        id = current_user.user_id
+        if id == 1:
+            product_id = request.json['product_id']
+            product_to_delete = Products.query.filter_by(id=product_id, deleted_at=None).first()
+            if product_to_delete is None:
+                return jsonify({'error' : f'This product with ID: {product_id} does not exist'})
+            product_to_delete.deleted_at = datetime.utcnow()
+            db.session.commit()
+
+            return jsonify({'response' : "Product was deleted"}), HTTP_200_OK
+        else:
+            return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
+
+
+@app.get('/api/product-list')
 def api_products():
-    our_products = Products.query.order_by(Products.data_added).all()
+    our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added).all()
     product_list = []
     
     for our_product in our_products:
                 product_name = our_product.product_name
                 cost = our_product.cost
-                producent = our_product.producent
+                producer = our_product.producer
                 category_id = our_product.category_id
 
                 product_list.append({
                     "product_name" : product_name,
                     "cost" : cost,
-                    "producent" : producent,
+                    "producer" : producer,
                     "category_id" : category_id})
     
     return jsonify({"product_list" : product_list}), HTTP_200_OK
 
 
-@app.get('/api/user_list')
+@app.get('/api/product')
+def api_product():
+    product_id = request.json['product_id']
+    product = Products.query.filter_by(product_id = product_id, deleted_at=None).first()
+    if product is None:
+        return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND 
+    else:
+        return jsonify({
+                    'product info': {
+                        'product id' : product.product_id,
+                        'product name': product.product_name, 
+                        'cost' : product.cost,
+                        'producer' : product.producer,
+                        'category id' : product.category_id,
+                        'data added' : product.data_added.strftime("%Y-%m-%d %H:%M:%S")
+                    }}), HTTP_200_OK
+    
+
+@app.get('/api/user-list')
 def api_user_list():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -783,43 +891,14 @@ def api_user_list():
         else:
             return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
 
-@app.route('/api/update', methods=['PUT'])
-def api_update():
-    if not current_user.is_authenticated:
-        return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
-    
-    if current_user.is_authenticated:
-        try:
-            user = Users.query.get(current_user.user_id)
-            if user:
-                if 'name' in request.json:
-                    user.name = request.json['name']
-                if 'username' in request.json:
-                    user.username = request.json['username']
-                if 'last_name' in request.json:
-                    user.last_name = request.json['last_name']
-                if 'address' in request.json:
-                    user.address = request.json['address']
-                return jsonify({ 
-                    'response' : 'user updated',
-                    'user' : {
-                        "name" : user.name,
-                        "username" : user.username,
-                        "last_name" : user.last_name,
-                        "address" : user.address
-
-                    }}), HTTP_200_OK
-        except:
-            return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
-    
 
 @app.get('/api/cart')
 def api_cart():
     cart = session.get('cart', [])
     return jsonify({'cart' : cart}), HTTP_200_OK
 
-#TODO zrobic tylko jedna array z jednym produktem i elo, wyjebac po else i zmienic jsona
-@app.post('/api/add_to_cart')
+
+@app.post('/api/cart')
 def api_add_to_cart():
     cart = session.get('cart', [])
     if 'products' in request.json and isinstance(request.json['products'], list):
@@ -831,18 +910,7 @@ def api_add_to_cart():
                     cart.append({'product_id': product_id, 'quantity': quantity})
                 else:
                     return jsonify({'error' : f'Product with id {product_id} was not found',
-                                    'cart' : cart}), HTTP_404_NOT_FOUND
-    else:
-        product_id = request.json.get('product_id')
-        quantity = request.json.get('quantity')
-        product = Products.query.get(product_id)
-        if product:
-            cart.append({'product_id': product_id, 'quantity': quantity})
-        else:
-
-            return jsonify({'error' : f'Product with id {product_id} was not found',
-                            'cart' : cart}), HTTP_404_NOT_FOUND
-        
+                                    'cart' : cart}), HTTP_404_NOT_FOUND     
     session['cart'] = cart
         
     return jsonify({
@@ -864,7 +932,7 @@ def api_add_to_cart():
 '''
 
 
-@app.route('/api/update_cart', methods = ['PUT'])
+@app.route('/api/cart', methods = ['PUT'])
 def api_update_cart():
     cart = session.get('cart', [])
     # If request is a list (more than one product)
@@ -881,71 +949,11 @@ def api_update_cart():
                 if not product_found:
                     return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
     
-    # If request is a dict (one product)
-    elif isinstance(request.json, dict):
-        if 'product_id' in request.json and 'quantity' in request.json:
-            product_id = request.json['product_id']
-            quantity = request.json['quantity']
-            product_found = False
-            for key in cart:
-                if key['product_id'] == product_id:
-                    key['quantity'] = quantity
-                    product_found = True
-            if not product_found:
-                return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
     session['cart'] = cart
     session.modified = True
     return jsonify({'message': 'Cart updated successfully', 'cart': cart}), HTTP_200_OK
 
 
-@app.get('/api/product')
-def api_product():
-    product_id = request.json['product_id']
-    product = Products.query.filter_by(product_id = product_id).first()
-    if product is None:
-        return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND 
-    else:
-        return jsonify({
-                    'product info': {
-                        'product id' : product.product_id,
-                        'product name': product.product_name, 
-                        'cost' : product.cost,
-                        'producent' : product.producent,
-                        'category id' : product.category_id,
-                        'data added' : product.data_added.strftime("%Y-%m-%d %H:%M:%S")
-                    }}), HTTP_200_OK
-
-
-# TODO opinie Stajkiego, zostaje order czy customer_creator i order2
-# @app.post('/api/order')
-# def api_order():
-#     cart = session.get('cart')
-
-#     if not current_user.is_authenticated:
-#         name = request.json['name']
-#         last_name = request.json['last_name']
-#         email = request.json['email']
-#         address = request.json['address']
-    
-#         customer_user = Customer(name = name,
-#                                  last_name = last_name,
-#                                  email = email,
-#                                  address = address)
-#         db.session.add(customer_user)
-#         db.session.commit()
-#         return jsonify({'respone' : 'customer was created',
-#                         'customer' : {
-#                             'name' : customer_user.name,
-#                             'last_name' : customer_user.last_name,
-#                             'email' : customer_user.email,
-#                             'address' : customer_user.address
-#                         },
-#                         'cart' : cart})
-    
-#     if current_user.is_authenticated:
-#         user_email = current_user.email
-#         return jsonify({'user' : user_email,
-#                         'cart' : cart})
 
 
 @app.post('/api/customer_creator')
@@ -1177,11 +1185,7 @@ praktyka
 
     #TODO LIST
 
-    # slugi ogarnąć w api
-
     # Ogarnąć pętle loop do product form odnośnie category id i odpowiadającej nazwie w select field, coś na zasadzie for id in Category.query.all() id = Category.category_id, name = Category.category_name i iterować ze 1 to Sucha karma, 2 to Mokra etc. Zmienić bazę danych z nazwy category ID na Cateogry name FK, żeby podawać nie ID tylko nazwę która jest unique i dla forntu będzie czytelniejsza, później w całym kodzie zmienić category_id na category_name w odpowiednich miejscach
-
-    # Ogarnąć żeby na stronie orders_detail zapisywało do db Orderdateail gdy będzie opłacone
     
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
        
@@ -1273,7 +1277,7 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 # DO BYKA
 
 # DO STAJKIEGO
-# api order ma za zadanie być 1:1 taki jak @app.route('/order') ? REST API maja wykonywac te same czynności co cruodwa apka czy bedzie to inaczej rozpisane i np powinienem to rozdzielić na create_customer i samą stronę order która będzie miała za zadanie zobaczyć czy jestes customerem czy userem i stworzy order na tej podstawie
+
 
 # zawsze liczba mnoga w linkach w route a potem single rzecz po id /api/products     api/products/1
 # JWT TOKENY
@@ -1282,28 +1286,6 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 # content pod seo  jak powinien wygladac
 
 """
-Przykładowe zastosowania/pomysły REST API
-
-Kategorie:
-    - Sucha karma
-    - Mokra karma
-    - Zabawki
-
-/api/category/ [ GET ]
-- GET = pokaż wszystkie kategorie
-
-/api/category/<nazwa_kategorii> [ POST | DELETE]
-- POST = dodaje nową kategorie
-- DELETE = usuwa daną kategorie
-
-/api/<nazwa_kategorii>/product [ GET | POST | DELETE ]
-- GET = pokaż wszystkie produkty danej kategorii
-- POST = dodaj nowy produkt do danej kategorii
-- DELETE = usuń produkt z danej kategorii
-
-/api/product/<id> [GET | DELETE ]
-- GET = pokaż produkt, kategorie etc.
-- DELETE = usuń produkt z danej kategorii
 
 /api/product/ [ GET (localhost:5000/api/product?price_low=10&price_high=50) | POST | DELETE ] / filtrowanie produktów ?
 - GET = pokaż produkty, możliwe filtrowanie

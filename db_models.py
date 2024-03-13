@@ -34,7 +34,7 @@
 #     id = db.Column(db.Integer, primary_key=True)
 #     product_name = db.Column(db.String(200), nullable=False)
 #     cost = db.Column(db.Integer, nullable=False)
-#     producent = db.Column(db.String(200), nullable=False)
+#     producer = db.Column(db.String(200), nullable=False)
 #     data_added = db.Column(db.DateTime, default=datetime.utcnow)
 
 #     # Create A String
