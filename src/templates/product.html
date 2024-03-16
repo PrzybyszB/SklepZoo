@@ -33,7 +33,7 @@
 
     <br></br>
 </div>
-<form method="POST" action="{{ url_for('product', product_id=product.product_id) }}">
+<form method="POST" action="{{ url_for('product_blueprint.product', product_id=product.product_id) }}">
     {{ form2.hidden_tag() }}
     <label for="quantity">Quantity:</label>
     {{ form2.quantity_of_product(size=5, type="number", step=1) }}

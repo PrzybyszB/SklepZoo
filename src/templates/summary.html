@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<form method="POST" action="{{ url_for('final_order_info') }}" >
+<form method="POST" action="{{ url_for('cart_blueprint.final_order_info') }}" >
 KWOTA DO ZAPŁATY : {{ total_cost }}
 </br>
 Zamówienie ID : {{ order.order_id }}

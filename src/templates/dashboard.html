@@ -34,9 +34,9 @@ get_flashed_messages() %}
             <strong>address:</strong> {{ current_user.address }}
             <br/>
             <strong>Data joined:</strong> {{ current_user.data_added }}</p>
-          <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Logout</a>
+          <a href="{{ url_for('user_blueprint.logout') }}" class="btn btn-secondary btn-sm">Logout</a>
 
-          <a href ="{{ url_for('update') }}" class="btn btn-secondary btn-sm">Update</a> 
+          <a href ="{{ url_for('user_blueprint.update') }}" class="btn btn-secondary btn-sm">Update</a> 
           
         </div>
       </div>

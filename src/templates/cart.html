@@ -5,7 +5,7 @@
 <h1>Koszyk</h1>
 
 
-<form method="POST" action="{{ url_for('update_cart') }}">
+<form method="POST" action="{{ url_for('cart_blueprint.update_cart') }}">
     {% for item in cart %}
         <p>Product ID : {{ item['product_id'] }} .
             <label for="">Quantity:</label>
@@ -15,7 +15,7 @@
 
     {% endfor %}
     <button type="submit" class="btn btn-danger btn-sm">Update</button>
-    <a href="{{ url_for('order') }}" class="btn btn-primary btn-sm">Zamów</a>
+    <a href="{{ url_for('cart_blueprint.order') }}" class="btn btn-primary btn-sm">Zamów</a>
 
 </form>
 </br>

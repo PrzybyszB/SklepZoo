@@ -9,6 +9,14 @@
 
     {{ customer_form.email.label(class="form-label") }}
     {{ customer_form.email( class="form-control") }}
+    {% if customer_form.email.errors %}
+        {% for error in customer_form.email.errors %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" >
+                {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>   
+            </div>
+        {% endfor %}
+    {% endif %}
     <br/>
     {{ customer_form.name.label(class="form-label") }}
     {{ customer_form.name( class="form-control") }}

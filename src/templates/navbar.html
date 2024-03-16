@@ -9,38 +9,38 @@
         <ul class="navbar-nav ms-auto  mb-2 mb-lg-0">
             {% if current_user.user_id == 1 %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('user_list') }}">Lista Userów</a>
+              <a class="nav-link" href="{{ url_for('user_blueprint.user_list') }}">Lista Userów</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('add_category') }}">Dodaj kategorie</a>
+              <a class="nav-link" href="{{ url_for('product_blueprint.add_category') }}">Dodaj kategorie</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="{{ url_for('admin.index') }}">Panel Admina</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('add_product') }}">Dodaj produkt</a>
+              <a class="nav-link" href="{{ url_for('product_blueprint.add_product') }}">Dodaj produkt</a>
             </li>
             {% endif %}
             {% if current_user.is_authenticated %} 
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('dashboard') }}">User Profile</a>
+              <a class="nav-link" href="{{ url_for('user_blueprint.dashboard') }}">User Profile</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('logout') }}">Wyloguj</a>
+              <a class="nav-link" href="{{ url_for('user_blueprint.logout') }}">Wyloguj</a>
             </li>
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('add_user') }}">Rejestracja</a>
+              <a class="nav-link" href="{{ url_for('user_blueprint.add_user') }}">Rejestracja</a>
             </li> 
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('login') }}">Logowanie</a>
+              <a class="nav-link" href="{{ url_for('user_blueprint.login') }}">Logowanie</a>
             </li>
             {% endif %}
             <li class="nav-item">
-              <a class="nav-link" name="cart" href="{{ url_for('products') }}">Produkty</a>
+              <a class="nav-link" name="cart" href="{{ url_for('product_blueprint.products') }}">Produkty</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" name="cart" href="{{ url_for('cart') }}">Koszyk</a>
+              <a class="nav-link" name="cart" href="{{ url_for('cart_blueprint.cart') }}">Koszyk</a>
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">

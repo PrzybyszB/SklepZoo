@@ -26,7 +26,7 @@ Produkty
         {{ our_product.cost }} -
         {{ our_product.data_added }}
         {{ our_product.category_id }}       - 
-        <a href="{{ url_for('product', product_id= our_product.product_id) }}" class="btn btn-secondary btn-sm">Dodaj do koszyka</a>
+        <a href="{{ url_for('product_blueprint.product', product_id= our_product.product_id) }}" class="btn btn-secondary btn-sm">Dodaj do koszyka</a>
         </td>
         </tr>
     {% endfor %}
