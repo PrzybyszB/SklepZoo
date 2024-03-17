@@ -1,8 +1,8 @@
-from flask import Blueprint, render_template, flash, request, redirect, url_for, session, jsonify
+from flask import Blueprint, render_template, flash, request, redirect, url_for
 from flask_login import login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from db_models import db, Users
-from webforms import LoginForm, UserForm
+from src.db_models import db, Users
+from src.webforms import LoginForm, UserForm
 
 
 user_blueprint = Blueprint('user_blueprint', __name__, static_folder="static", template_folder="templates")
@@ -22,6 +22,7 @@ def add_user():
                          password_hash=hashed_pw,
                          address = None,
                          last_name = None)
+            
             db.session.add(user)
             db.session.commit()
         name = form.name.data

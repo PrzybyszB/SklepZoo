@@ -57,7 +57,7 @@ class Users(db.Model, UserMixin):
         raise AttributeError ('password is not readable attribute')
     @password.setter
     def password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = generate_password_hash(password, "pbkdf2:sha256")
     def verify_password(self,password):
         return check_password_hash(self.password_hash, password)
     # Create A String
@@ -81,7 +81,6 @@ class Products(db.Model):
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
     order_detail_relationship = db.relationship('Orders_detail', backref='products', lazy=True)
     
-
 class Orders(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True,)

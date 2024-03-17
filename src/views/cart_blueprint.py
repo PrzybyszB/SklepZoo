@@ -1,7 +1,7 @@
 from flask import Flask, Blueprint, render_template, flash, request, redirect, url_for, session, jsonify
 from flask_login import current_user
-from webforms import  UserForm, Order_detailForm, CustomerForm
-from db_models import db, Users, Products, Orders, Orders_detail, Customer
+from src.webforms import  UserForm, Order_detailForm, CustomerForm
+from src.db_models import db, Users, Products, Orders, Orders_detail, Customer
 import re
 
 

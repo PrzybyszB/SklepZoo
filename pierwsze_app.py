@@ -9,77 +9,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import re
 import stripe
 import validators
-from constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_201_CREATED, HTTP_200_OK, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR
-from db_models import db, init_db, Users, Products, Category, Orders, Orders_detail, Customer
-from views.cart_blueprint import cart_blueprint
-from views.user_blueprint import user_blueprint
-from views.product_blueprint import product_blueprint
-from views.payment_blueprint import payment_blueprint
-from views.views_blueprint import views_blueprint
-import os
+from src.constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT, HTTP_201_CREATED, HTTP_200_OK, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND,HTTP_500_INTERNAL_SERVER_ERROR
+# from db_models import db, init_db, Users, Products, Category, Orders, Orders_detail, Customer
+# from views.cart_blueprint import cart_blueprint
+# from views.user_blueprint import user_blueprint
+# from views.product_blueprint import product_blueprint
+# from views.payment_blueprint import payment_blueprint
+# from views.views_blueprint import views_blueprint
+# import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-app = Flask(__name__)
-
-
-#Add Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://pbartosz:1q2w3e4r5t6Y.@localhost/FirstDataBase'
-
-#Secret Key!
-app.config['SECRET_KEY'] = "test haslo" # uwazac zeby nie podawac  w gita bo wjedzie na publik i  bedzie iks de
-
-# Initialize The Database
-# db = SQLAlchemy(app)
-init_db(app)
-
-
-# Flask migrate instance
-migrate = Migrate(app,db)
-
-
-# Flask admin view, username = Admin, password = 123, email = Admin@email.com, user_id = 1
-class MyAdminIndexView(AdminIndexView):
-    @expose('/')
-    def index(self):
-        if current_user.is_authenticated:
-            id = current_user.user_id
-            if id == 1:
-              return super(MyAdminIndexView, self).index()  
-        if not current_user.is_authenticated:
-            flash('U have to be Admin to do Admin things')
-            return redirect(url_for('login'))
-        else:
-            flash('U have to be Admin to do Admin things')
-            return redirect(url_for('dashboard'))
-
-
-# # Flask admin init base_template='admin.html')
-        
-admin = Admin(app, name='Admin',index_view=MyAdminIndexView(), template_mode='bootstrap3')
-
-admin.add_view(ModelView(Products, db.session))
-admin.add_view(ModelView(Category, db.session))
-admin.add_view(ModelView(Users, db.session))
-
-#Flask_Login Stuff
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'user_blueprint.login'
-
-# For payments
-public_key = "pk_test_TYooMQauvdEDq54NiTphI7jx"
-stripe.api_key = "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
-
-app.register_blueprint(user_blueprint)
-app.register_blueprint(product_blueprint)
-app.register_blueprint(cart_blueprint)
-app.register_blueprint(payment_blueprint)
-app.register_blueprint(views_blueprint)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return Users.query.get(int(user_id))
 
 
 
@@ -101,43 +39,43 @@ def test():
         return jsonify({"response": "Hi " + name})
 
 
-@app.post('/api/add_user')
-def api_add_user():
-    name = request.json['name']
-    last_name = request.json['last_name']
-    username = request.json['username']
-    email = request.json['email']
-    password = request.json['password']
-    password2 = request.json['password2']
-    address = request.json['address']
+# @app.post('/api/add_user')
+# def api_add_user():
+#     name = request.json['name']
+#     last_name = request.json['last_name']
+#     username = request.json['username']
+#     email = request.json['email']
+#     password = request.json['password']
+#     password2 = request.json['password2']
+#     address = request.json['address']
     
-    if not validators.email(email):
-        return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
+#     if not validators.email(email):
+#         return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
     
-    if password != password2:
-        return jsonify({'error': "Password must match!"}), HTTP_400_BAD_REQUEST
+#     if password != password2:
+#         return jsonify({'error': "Password must match!"}), HTTP_400_BAD_REQUEST
 
-    if Users.query.filter_by(email=email).first() is not None:
-        return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
+#     if Users.query.filter_by(email=email).first() is not None:
+#         return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
 
-    pwd_hash = generate_password_hash(password, "pbkdf2:sha256")
+#     pwd_hash = generate_password_hash(password, "pbkdf2:sha256")
 
-    user = Users(name=name,
-                 last_name=last_name,
-                 username=username, 
-                 email=email, 
-                 password=pwd_hash, 
-                 address=address )
+#     user = Users(name=name,
+#                  last_name=last_name,
+#                  username=username, 
+#                  email=email, 
+#                  password=pwd_hash, 
+#                  address=address )
     
-    db.session.add(user)
-    db.session.commit()
+#     db.session.add(user)
+#     db.session.commit()
 
-    return jsonify({
-                    'message': "User created",
-                    'user': {
-                        'username': username, 
-                        'email' : email
-                    }}), HTTP_201_CREATED
+#     return jsonify({
+#                     'message': "User created",
+#                     'user': {
+#                         'username': username, 
+#                         'email' : email
+#                     }}), HTTP_201_CREATED
 
 
 @app.post('/api/login')
@@ -699,6 +637,8 @@ praktyka
 
     #TODO LIST
 
+    # Ustawić adress i lastname jako nullable = Flase, wycziscic baze danych i zrobic admina
+
     # Ogarnąć pętle loop do product form odnośnie category id i odpowiadającej nazwie w select field, coś na zasadzie for id in Category.query.all() id = Category.category_id, name = Category.category_name i iterować ze 1 to Sucha karma, 2 to Mokra etc. Zmienić bazę danych z nazwy category ID na Cateogry name FK, żeby podawać nie ID tylko nazwę która jest unique i dla forntu będzie czytelniejsza, później w całym kodzie zmienić category_id na category_name w odpowiednich miejscach
     
     # Kiedy dodajemy kategorie niech, dodaje sie automatycznie do SelectField i do navbaru
@@ -712,7 +652,6 @@ praktyka
     # dodać maxlength do inputow, ktore dotycza kolumn z ogranizczona liczba znakow
 
     # dodac walidacje danych otrzymywanych z frontu, zeby np. jako ilosc nie móc podać "aaaeee"
-
 
 '''
 Po zrobieniu api zrobić autoryzacje i token lata po froncie
