@@ -20,16 +20,18 @@ def add_user():
                          username = form.username.data, 
                          email = form.email.data, 
                          password_hash=hashed_pw,
-                         address = None,
-                         last_name = None)
+                         address = form.address.data,
+                         last_name = form.last_name.data)
             
             db.session.add(user)
             db.session.commit()
         name = form.name.data
         form.name.data = ''
+        form.last_name.data = ''
         form.username.data = ''
         form.email.data = ''
         form.password_hash.data = ''
+        form.address.data = ''
         flash("User Added Successfully")
     our_users = Users.query.order_by(Users.data_added)
     return render_template("add_user.html", 

@@ -3,7 +3,12 @@ from flask_admin import AdminIndexView, expose
 from flask_login import current_user
 
 
-
+# Name : Admin
+# Username : Admin
+# Last_name : Admin
+# Email : Admin@email.com 
+# Address : Admin
+# Password : 123
 
 class MyAdminIndexView(AdminIndexView):
     @expose('/')

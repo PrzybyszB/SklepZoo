@@ -1,6 +1,8 @@
+from flask import current_app
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField
-from wtforms.validators import DataRequired, EqualTo, NumberRange, Optional, Email
+from wtforms import StringField, SubmitField, PasswordField, SelectField, IntegerField
+from wtforms.validators import DataRequired, EqualTo, NumberRange, Email
+from src.db_models import Category
 
 
 
@@ -16,8 +18,8 @@ class UserForm(FlaskForm):
     name =  StringField("Imię", validators=[DataRequired()])
     username = StringField("Username", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email")])
-    last_name = StringField("Nazwisko", validators=[Optional()])
-    address = StringField("Adres", validators=[Optional()])
+    last_name = StringField("Nazwisko", validators=[DataRequired()])
+    address = StringField("Adres", validators=[DataRequired()])
     password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Hasła nie są takie same!')])
     password_hash2 = PasswordField("Potwierdź hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")
@@ -34,9 +36,15 @@ class ProductForm(FlaskForm):
     cost = IntegerField("Koszt", validators=[DataRequired()])
     producer = StringField("Producent", validators=[DataRequired()])
     submit = SubmitField("Dodaj Produkt")
-    category_id = SelectField(u'Kategoria', choices=[('1', 'Sucha Karma'), 
-                                                       ('2', 'Mokra Karma'),
-                                                        ('3', 'Zabawki')])
+    
+    # Define category choices as loop choices=('category_id', 'category_name'), with current_app.app_context() to work in apllication context
+    def get_category_choices():
+        with current_app.app_context():
+            categories = Category.query.all()
+            return [(str(category.category_id), category.category_name) for category in categories]
+
+    
+    category_id = SelectField(u'Kategoria', choices=get_category_choices)
 
 
 class CategoryForm(FlaskForm):

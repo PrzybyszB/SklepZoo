@@ -1,0 +1,15 @@
+Redirect to a home page
+---
+tags:
+  - Bookmarks
+parameters:
+  - in: path
+    name: home
+    required: true
+
+responses:
+  302:
+    description: Redirects to the original link
+
+  404:
+    description: Record was not found

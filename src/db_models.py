@@ -14,9 +14,9 @@ class Users(db.Model, UserMixin):
     user_id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     name = db.Column(db.String(200), nullable=False)
-    last_name = db.Column(db.String(200), nullable=True)
+    last_name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
-    address = db.Column(db.String(120), nullable=True)
+    address = db.Column(db.String(120), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
@@ -73,7 +73,7 @@ class Category(db.Model):
 class Products(db.Model):
     product_id = db.Column(db.Integer, primary_key=True)
     product_name = db.Column(db.String(200), nullable=False, unique=True)
-    cost = db.Column(db.Integer, nullable=True)
+    cost = db.Column(db.Integer, nullable=False)
     producer = db.Column(db.String(200), nullable=False)
     data_added = db.Column(db.DateTime, default=datetime.utcnow)
     deleted_at = db.Column(db.DateTime)

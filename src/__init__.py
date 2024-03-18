@@ -1,7 +1,10 @@
-from flask import Flask
+from datetime import timedelta
+from flask import Flask, session
+from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from flasgger import Swagger
 from src.myadmin import MyAdminIndexView
 from src.views.user_blueprint import user_blueprint
 from src.views.product_blueprint import product_blueprint
@@ -14,18 +17,27 @@ from src.api.api_product_blueprint import api_product_blueprint
 from src.api.api_payment_blueprint import api_payment_blueprint
 from src.api.api_views_blueprint import api_views_blueprint
 from src.db_models import db, init_db, Users, Category, Products, Orders, Orders_detail
-from src.config import Config
+from src.config.config import Config
+from src.config.swagger import template, swagger_config
 
 
 def create_app(config_class=Config):
     # Initialize flask app
     app = Flask(__name__)
     
+    # Initialize swagger
+
+    swagger = Swagger(app, template=template, config=swagger_config)
+
     # Config
     app.config.from_object(config_class)
     
     # Initialize data base
     init_db(app)
+
+    # Initialize Migrate
+    migrate = Migrate(app, db)
+
 
     # Initialize Login Manager
     login_manager = LoginManager()
@@ -59,5 +71,21 @@ def create_app(config_class=Config):
     app.register_blueprint(api_payment_blueprint)
     app.register_blueprint(api_views_blueprint)
     
+
+    # Flask before request
+    @app.context_processor
+    def inject_global_variables():
+        categories = Category.query.all()
+        return {'categories': categories}
+
+    @app.before_request
+    def make_session_permanent():
+        session.permanent = True
+        app.permanent_session_lifetime = timedelta(minutes=1440)
+
+    # Connecting first time with database
+    # with app.app_context():
+    #     db.create_all()
+
     return app
 

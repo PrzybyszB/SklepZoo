@@ -29,7 +29,7 @@ def add_category():
             form.category_name.data = ''
             form.category_slug.data = ''
             flash("Category Added Successfully")
-        category_list = Category.query.order_by(Category.category_id)
+        category_list = Category.query.order_by(Category.category_id).all()
         return render_template('add_category.html', 
                             form=form,
                             category_name = category_name,

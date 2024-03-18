@@ -1,5 +1,6 @@
 from flask import Blueprint, request, session, jsonify
 from flask_login import current_user
+from flasgger import swag_from
 from src.constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_200_OK
 from src.db_models import db, Customer, Orders, Orders_detail, Products
 import validators
@@ -8,6 +9,11 @@ import validators
 
 
 api_views_blueprint= Blueprint('api_views_blueprint', __name__, static_folder="static", template_folder="templates")
+
+@swag_from('/src/docs/api_home.yml')
+@api_views_blueprint.get('/apihome')
+def api_home():
+    return jsonify({"response" : "This is home page"})
 
 
 @api_views_blueprint.post('/api/customer_creator')
@@ -115,6 +121,7 @@ def api_order_detail():
                         'quantity_of_product' : order_detail.quantity_of_product,
                         'total_cost' : order.total_cost
                      }}), HTTP_200_OK
+
 
 @api_views_blueprint.get('/api/summary')
 def api_summary():

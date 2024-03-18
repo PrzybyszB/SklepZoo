@@ -57,45 +57,6 @@ def api_add_user():
                     }}), HTTP_201_CREATED
 
 
-@api_user_blueprint.post('/api/add_user')
-def api_add_user():
-    name = request.json['name']
-    last_name = request.json['last_name']
-    username = request.json['username']
-    email = request.json['email']
-    password = request.json['password']
-    password2 = request.json['password2']
-    address = request.json['address']
-    
-    if not validators.email(email):
-        return jsonify({'error': "Email is not valid"}), HTTP_400_BAD_REQUEST
-    
-    if password != password2:
-        return jsonify({'error': "Password must match!"}), HTTP_400_BAD_REQUEST
-
-    if Users.query.filter_by(email=email).first() is not None:
-        return jsonify({'error': "Email is taken"}), HTTP_409_CONFLICT
-
-    pwd_hash = generate_password_hash(password, "pbkdf2:sha256")
-
-    user = Users(name=name,
-                 last_name=last_name,
-                 username=username, 
-                 email=email, 
-                 password=pwd_hash, 
-                 address=address )
-    
-    db.session.add(user)
-    db.session.commit()
-
-    return jsonify({
-                    'message': "User created",
-                    'user': {
-                        'username': username, 
-                        'email' : email
-                    }}), HTTP_201_CREATED
-
-
 @api_user_blueprint.post('/api/login')
 def api_login():
     email = request.json.get('email', '')
