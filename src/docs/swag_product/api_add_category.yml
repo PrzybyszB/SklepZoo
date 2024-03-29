@@ -1,0 +1,32 @@
+
+Adding new category to database
+---
+tags:
+  - category
+parameters:
+- name: body
+  description: The body should contain categoryd data
+  in: body
+  required: true
+  schema:
+    type: object
+    required:
+      - "category_name"
+      - "category_slug"
+    properties:
+      category_name:
+        type: "string"
+        example: "example name"      
+      category_slug:
+        type: "string"
+        example: "example slug"   
+
+responses:
+  201:
+    description: When a category was successfully added
+  400:
+    description: Fails to add category due to bad request data
+  401:
+    description: U have to be login as Admin
+  409:
+    description: This category already exist

@@ -1,0 +1,9 @@
+User log out
+---
+tags:
+  - Auth
+responses:
+  200:
+    description: User was logged out
+  401:
+    description: User are not logged in

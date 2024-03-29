@@ -1,0 +1,42 @@
+User update data
+---
+tags:
+  - Me
+parameters:
+- name: body
+  description: User data to update
+  in: body
+  required: true
+  schema:
+    type: object
+    properties:
+      name:
+        type: "string"
+        example: "new_name"
+      last_name:
+        type: "string"
+        example: "new_last_name"
+      username:
+        type: "string"
+        example: "new_username"
+      email:
+        type: "string"
+        example: "new_email@email.com"
+      password:
+        type: "string"
+        format: password
+        example: "new_password"
+      password2:
+        type: "string"
+        format : password
+        example: "new_password2"
+      address:
+        type: "string"
+        example: "new_address"        
+responses:
+  200:
+    description: The changes have been successfully saved.
+  401:
+    description: U are not logged in
+  500:
+    description: Fails to update user

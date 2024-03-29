@@ -10,7 +10,7 @@ import validators
 
 api_views_blueprint= Blueprint('api_views_blueprint', __name__, static_folder="static", template_folder="templates")
 
-@swag_from('/src/docs/api_home.yml')
+@swag_from('/src/docs/swag_views/api_home.yml')
 @api_views_blueprint.get('/apihome')
 def api_home():
     return jsonify({"response" : "This is home page"})

@@ -1,0 +1,31 @@
+Updates the contents of the user's cart
+---
+tags:
+  - Cart
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+        type: array
+        items:
+          type: object
+          properties:
+            product_id:
+              type: string
+              description: ID of the product to update
+              example: "1"
+            quantity:
+              type: integer
+              description: New quantity of the product
+              example: 2
+          required:
+            - product_id
+            - quantity
+responses:
+  200:
+    description: Product was succesfully updated
+  400:
+    description: Missing or invalid data
+  404:
+    description: Product with id {product_id} was not found

@@ -12,7 +12,7 @@ template = {
     "termsOfService": "https://github.com/PrzybyszB",
     "version": "1.0"
   },
-  "host": "mysite.com",  # overrides localhost:500
+  "host": "127.0.0.1:5000",  # overrides localhost:500
   "basePath": "/api",  # base bash for blueprint registration
   "schemes": [
     "http",

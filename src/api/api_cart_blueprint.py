@@ -12,29 +12,47 @@ api_cart_blueprint = Blueprint('api_cart_blueprint', __name__, static_folder="st
 
 
 @api_cart_blueprint.get('/api/cart')
+@swag_from('/src/docs/swag_cart/api_cart.yml')
 def api_cart():
     cart = session.get('cart', [])
     return jsonify({'cart' : cart}), HTTP_200_OK
 
 
 @api_cart_blueprint.post('/api/cart')
+@swag_from('/src/docs/swag_cart/api_add_to_cart.yml')
 def api_add_to_cart():
     cart = session.get('cart', [])
-    if 'products' in request.json and isinstance(request.json['products'], list):
-            for product in request.json['products']:
-                product_id = product.get('product_id')
-                quantity = product.get('quantity')
-                product = Products.query.get(product_id)
-                if product:
-                    cart.append({'product_id': product_id, 'quantity': quantity})
-                else:
-                    return jsonify({'error' : f'Product with id {product_id} was not found',
-                                    'cart' : cart}), HTTP_404_NOT_FOUND     
+    if 'products' not in request.json or not isinstance(request.json['products'], list):
+        return jsonify({'error' : "Missing or invalid data" }), HTTP_400_BAD_REQUEST
+    
+    for product in request.json['products']:
+        product_id = product.get('product_id')
+        quantity = product.get('quantity')
+        if product_id is None or quantity is None:
+            return jsonify({'error' : "Missing or invalid data" }), HTTP_400_BAD_REQUEST
+        
+        existing_product = None
+        for cart_product in cart:
+            if cart_product['product_id'] == product_id:
+                existing_product = cart_product
+                break
+
+        if existing_product:
+            existing_product['quantity']+= quantity
+        else:
+            product = Products.query.get(product_id)
+            if not product:
+                return jsonify({'error' : f'Product with id {product_id} was not found',
+                                        'cart' : cart}), HTTP_404_NOT_FOUND 
+        
+            cart.append({'product_id': product_id, 'quantity': quantity})   
+    
     session['cart'] = cart
         
     return jsonify({
-        'respone' : "Products was added successfully",
-        'cart': cart}), HTTP_200_OK
+            'respone' : "Products was added successfully",
+            'cart': cart}), HTTP_200_OK
+
 '''
 {
     "products": [
@@ -52,21 +70,23 @@ def api_add_to_cart():
 
 
 @api_cart_blueprint.route('/api/cart', methods = ['PUT'])
+@swag_from('/src/docs/swag_cart/api_update_cart.yml')
 def api_update_cart():
     cart = session.get('cart', [])
     # If request is a list (more than one product)
-    if isinstance(request.json, list):
-        for item in request.json:
-            if 'product_id' in item and 'quantity' in item:
-                product_id = item['product_id']
-                quantity = item['quantity']
-                product_found = False
-                for key in cart:
-                    if key['product_id'] == product_id:
-                        key['quantity'] = quantity
-                        product_found = True
-                if not product_found:
-                    return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
+    if not isinstance(request.json, list):
+        return jsonify({'error' : "Missing or invalid data" }), HTTP_400_BAD_REQUEST
+    for item in request.json:
+        if 'product_id' in item and 'quantity' in item:
+            product_id = item['product_id']
+            quantity = item['quantity']
+            product_found = False
+            for key in cart:
+                if key['product_id'] == product_id:
+                    key['quantity'] = quantity
+                    product_found = True
+            if not product_found:
+                return jsonify({'error': f'Product with ID: {product_id} was not found'}), HTTP_400_BAD_REQUEST
     
     session['cart'] = cart
     session.modified = True

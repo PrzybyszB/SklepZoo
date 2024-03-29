@@ -1,0 +1,9 @@
+Get user data
+---
+tags:
+  - Me
+responses:
+  200:
+    description: User data
+  401:
+    description: User are not logged in

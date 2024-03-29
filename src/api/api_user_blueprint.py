@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_user, logout_user, current_user
+from flasgger import swag_from
 from werkzeug.security import generate_password_hash, check_password_hash
 from src.db_models import db, Users
 import validators
@@ -13,17 +14,18 @@ api_user_blueprint = Blueprint('api_user_blueprint', __name__, static_folder="st
 
 
 
-@api_user_blueprint.post('/api/add_user')
+@api_user_blueprint.post('/api/register')
+@swag_from('/src/docs/swag_user/api_register.yml')
 def api_add_user():
     
     try:
         name = request.json['name']
-        last_name = request.json.get('last_name', None)
+        last_name = request.json['last_name']
         username = request.json['username']
         email = request.json['email']
         password = request.json['password']
         password2 = request.json['password2']
-        address = request.json.get('address', None)
+        address = request.json['address']
         
     except KeyError as e:
         return jsonify({'error': f"Missing data {e}"}), HTTP_400_BAD_REQUEST
@@ -58,6 +60,7 @@ def api_add_user():
 
 
 @api_user_blueprint.post('/api/login')
+@swag_from('/src/docs/swag_user/api_login.yml')
 def api_login():
     email = request.json.get('email', '')
     password_hash = request.json.get('password', '')
@@ -81,6 +84,7 @@ def api_login():
 
 
 @api_user_blueprint.post('/api/logout')
+@swag_from('/src/docs/swag_user/api_logout.yml')
 def api_logout():
     if not current_user.is_authenticated:
         return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
@@ -90,6 +94,7 @@ def api_logout():
 
 
 @api_user_blueprint.get('/api/user')
+@swag_from('/src/docs/swag_user/api_dashboard.yml')
 def api_dashboard():
     if not current_user.is_authenticated:
         return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED 
@@ -105,6 +110,7 @@ def api_dashboard():
 
 
 @api_user_blueprint.route('/api/user', methods=['PUT'])
+@swag_from('/src/docs/swag_user/api_update.yml')
 def api_update():
     if not current_user.is_authenticated:
         return jsonify({'error' : "You are not log in"}), HTTP_401_UNAUTHORIZED
@@ -121,6 +127,7 @@ def api_update():
                     user.last_name = request.json['last_name']
                 if 'address' in request.json:
                     user.address = request.json['address']
+                db.session.commit()
                 return jsonify({ 
                     'response' : 'user updated',
                     'user' : {
@@ -134,6 +141,7 @@ def api_update():
             return jsonify({'resposne' : 'error updating user'}), HTTP_500_INTERNAL_SERVER_ERROR
         
 @api_user_blueprint.get('/api/user-list')
+@swag_from('/src/docs/swag_user/api_user_list.yml')
 def api_user_list():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 

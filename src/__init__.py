@@ -76,7 +76,9 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_global_variables():
         categories = Category.query.all()
-        return {'categories': categories}
+        if categories:
+            return {'categories': categories}
+        return {'categories': []}
 
     @app.before_request
     def make_session_permanent():

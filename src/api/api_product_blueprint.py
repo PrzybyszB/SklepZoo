@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
+from flasgger import swag_from
 from src.db_models import db, Products, Category
 from src.constant.https_status_code import HTTP_409_CONFLICT, HTTP_201_CREATED, HTTP_200_OK, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 from datetime import datetime
@@ -12,6 +13,7 @@ api_product_blueprint = Blueprint('api_product_blueprint', __name__, static_fold
 
 
 @api_product_blueprint.post('/api/category')
+@swag_from('/src/docs/swag_product/api_add_category.yml')
 def api_add_category():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 

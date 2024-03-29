@@ -1,0 +1,13 @@
+Redirect to a home page
+---
+tags:
+  - Test
+responses:
+  200:
+    description: Home page
+  
+  302:
+    description: Redirects to the original link
+
+  404:
+    description: Record was not found

@@ -1,0 +1,7 @@
+Get cart data
+---
+tags:
+  - Cart
+responses:
+  200:
+    description: The contents of the cart

@@ -1,0 +1,34 @@
+Adding items to cart
+---
+tags:
+  - Cart
+parameters:
+  - name: products
+    in: body
+    description: List of items(dict) to add to the cart
+    required: true
+    schema:
+      type: object
+      properties:
+        products:
+          type: array
+          description: List of products
+          items:
+            type: object
+            properties:
+              product_id:
+                type: string
+                description: ID of the product to add
+                example: "1"
+              quantity:
+                type: integer
+                description: Quantity of the product to add
+                example: 1
+
+responses:
+  200:
+    description: Product was succesfully added
+  400:
+    description: Missing or invalid data
+  404:
+    description: Product with id {product_id} was not found

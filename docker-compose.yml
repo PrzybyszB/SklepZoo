@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: "123A."
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10
+    volumes:
+    - ./my-sql-data:/var/lib/mysql
+
+  sklep-zoo-app:
+    image: sklep-zoo-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - FLASK_DEBUG=1
+      - SECRET_KEY=secret_key
+      - DATABASE_URI=mysql+pymysql://root:123A.@mysql/SklepZooDB
+    ports:
+      - "5000:5000"
+  

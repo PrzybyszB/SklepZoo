@@ -1,0 +1,9 @@
+Get users list
+---
+tags:
+  - Admin
+responses:
+  200:
+    description: Users list
+  401:
+    description: Admin are not logged in
