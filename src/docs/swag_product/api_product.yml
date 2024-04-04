@@ -1,0 +1,16 @@
+Description of product
+---
+tags:
+  - Product
+parameters:
+  - name: product_id
+    in: query
+    description: ID of the product to retrieve
+    required: true
+    type: integer
+
+responses:
+  200:
+    description: Existing product list
+  404:
+    description: Product with id {product_id} was not found

@@ -1,11 +1,10 @@
-
 Adding new category to database
 ---
 tags:
-  - category
+  - Category
 parameters:
 - name: body
-  description: The body should contain categoryd data
+  description: The body should contain category data
   in: body
   required: true
   schema:

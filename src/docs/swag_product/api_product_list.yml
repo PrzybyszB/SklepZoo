@@ -1,0 +1,7 @@
+All product list
+---
+tags:
+  - Product
+responses:
+  200:
+    description: Existing product list

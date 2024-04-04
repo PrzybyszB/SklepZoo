@@ -1,0 +1,7 @@
+All category list
+---
+tags:
+  - Category
+responses:
+  200:
+    description: Existing category list

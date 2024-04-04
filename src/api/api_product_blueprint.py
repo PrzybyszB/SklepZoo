@@ -41,6 +41,7 @@ def api_add_category():
 
 
 @api_product_blueprint.delete('/api/category')
+@swag_from('/src/docs/swag_product/api_delete_category.yml')
 def api_delete_category():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -50,8 +51,14 @@ def api_delete_category():
         if id == 1:
             category_id = request.json['category_id']
             category_to_delete = Category.query.get(category_id)
+
             if category_to_delete is None:
-                return jsonify({'error' : f'This category with ID: {category_id} does not exist'})
+                return jsonify({'error' : f'This category with ID: {category_id} does not exist'}), HTTP_404_NOT_FOUND
+            
+            associated_products = Products.query.filter_by(category_id=category_id).first()
+            if associated_products:
+                return jsonify({'error': 'Cannot delete category because there are associated products'}), HTTP_409_CONFLICT
+            
             db.session.delete(category_to_delete)
             db.session.commit()
 
@@ -61,6 +68,7 @@ def api_delete_category():
     
 
 @api_product_blueprint.get('/api/category')
+@swag_from('/src/docs/swag_product/api_category_list.yml')
 def api_category_list():
     our_categories = Category.query.order_by(Category.category_id).all()
     category_list = []
@@ -77,6 +85,7 @@ def api_category_list():
 
 
 @api_product_blueprint.post('/api/product')
+@swag_from('/src/docs/swag_product/api_add_product.yml')
 def api_add_product():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -114,6 +123,7 @@ def api_add_product():
 
 
 @api_product_blueprint.delete('/api/product')
+@swag_from('/src/docs/swag_product/api_delete_product.yml')
 def api_delete_product():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
@@ -122,9 +132,9 @@ def api_delete_product():
         id = current_user.user_id
         if id == 1:
             product_id = request.json['product_id']
-            product_to_delete = Products.query.filter_by(id=product_id, deleted_at=None).first()
+            product_to_delete = Products.query.filter_by(product_id=product_id, deleted_at=None).first()
             if product_to_delete is None:
-                return jsonify({'error' : f'This product with ID: {product_id} does not exist'})
+                return jsonify({'error' : f'This product with ID: {product_id} does not exist'}), HTTP_404_NOT_FOUND
             product_to_delete.deleted_at = datetime.utcnow()
             db.session.commit()
 
@@ -134,6 +144,7 @@ def api_delete_product():
 
 
 @api_product_blueprint.get('/api/product-list')
+@swag_from('/src/docs/swag_product/api_product_list.yml')
 def api_products():
     our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added).all()
     product_list = []
@@ -154,9 +165,10 @@ def api_products():
 
 
 @api_product_blueprint.get('/api/product')
+@swag_from('/src/docs/swag_product/api_product.yml')
 def api_product():
-    product_id = request.json['product_id']
-    product = Products.query.filter_by(product_id = product_id, deleted_at=None).first()
+    product_id = request.args.get('product_id')
+    product = Products.query.filter_by(product_id=product_id, deleted_at=None).first()
     if product is None:
         return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND 
     else:

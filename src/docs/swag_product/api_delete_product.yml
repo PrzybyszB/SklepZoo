@@ -1,0 +1,25 @@
+Deleting a product
+---
+tags:
+  - Product
+parameters:
+- name: body
+  description: The body should contain product id
+  in: body
+  required: true
+  schema:
+    type: object
+    required:
+      - "product_id"
+    properties:
+      product_id:
+        type: integer
+        example: 1    
+
+responses:
+  200:
+    description: When a product was successfully deleteg
+  400:
+    description: Fails to delete product due to bad request data
+  401:
+    description: U have to be login as Admin

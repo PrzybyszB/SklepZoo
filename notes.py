@@ -74,14 +74,14 @@ Będę w stanie wziąć twoje repozytorium, ściągnąć je za pomocą git clone
 
     #TODO LIST
 
-    # Aplikacja dockerowa ma dac gotowy produkt z Adminem i baza danych z pustymi tabelami except Admin
+    # Idempotency with HTTP Methods,  https://restfulapi.net/idempotent-rest-apis/ tabelka 2, https://stackoverflow.blog/2020/03/02/best-practices-for-rest-api-design/
 
     # czemu w panelu admina przy dodawaniu produktu nie ma dodawania do category id 
+
+    # dodac search
        
     # Entity schema (nazwy encji powinny byc w pojedynczej), ERD online(zapytac Adama w czym robił)
     
-    # Po całej stronie zrobić api. Aplikacje, która bedzie zwracała czyste informacje, za pomocą flassgera np. z endpointami (JS etc)
-
     # ogarnąc żeby przy logowaniu nie było widac hasła gołym okiem w zbadaj źródło, payload (zoabczyc HTTPS co i jak, self certyfiakt 509)
 
     # dodać maxlength do inputow, ktore dotycza kolumn z ogranizczona liczba znakow
@@ -163,18 +163,21 @@ Następnie możesz importować te stałe w innych częściach swojej aplikacji, 
 
 
 # DO BYKA
-# czy bazy danych sql przyjmuja spacje jak np jest category name to czy musi byc przykładowe_category czy moze byc przykładowe category ?
-# Czy teraz jak robie sobie w bazie danych to przed odplaeniem dockera poiwnien usunac folder my-sql-data
+# Ngin X docker i jak przesylac dockera do kogos ? i jak zrobic zeby kazdy mogl o danej porze sobie wejsc na strone 
+# dodac do gitignore notes.py i usunac z poprzednich commitow
 
 # DO STAJKIEGO
-
+# Idempotency with HTTP Methods,  https://restfulapi.net/idempotent-rest-apis/ tabelka 2, czy flasgger np w add product to cart powinien zawsze zwracac to smao czy np dodawac do siebie nowe produkty
 
 # zawsze liczba mnoga w linkach w route a potem single rzecz po id /api/products     api/products/1
 # JWT TOKENY
-# DOCKER
 # mcertyfikat SSL zeby po https lecialo
 # content pod seo  jak powinien wygladac
 
+
+# DO CAVIORA/ADAMA
+# Idempotency with HTTP Methods,  https://restfulapi.net/idempotent-rest-apis/ tabelka 2, czy flasgger np w add product to cart powinien zawsze zwracac to smao czy np dodawac do siebie nowe produkty
+# jak to jest z usuwaniem np kategori, jezeli chce usunac kategorie a nie moge bo baza danych wymaga zeby to bylo przez fk
 """
 
 /api/product/ [ GET (localhost:5000/api/product?price_low=10&price_high=50) | POST | DELETE ] / filtrowanie produktów ?

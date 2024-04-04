@@ -1,0 +1,27 @@
+Delete category
+---
+tags:
+  - Category
+parameters:
+- name: body
+  description: The body should contain category id
+  in: body
+  required: true
+  schema:
+    type: object
+    required:
+      - "category_id"
+    properties:
+      category_id:
+        type: "integer"
+        example: 1 
+
+responses:
+  200:
+    description: When a category was deleted
+  401:
+    description: U have to be login as Admin
+  404:
+    description: Category not found
+  409:
+    description: The category cannot be deleted because it has associated records.

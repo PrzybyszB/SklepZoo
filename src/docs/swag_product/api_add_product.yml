@@ -1,0 +1,39 @@
+Adding a product
+---
+tags:
+  - Product
+parameters:
+- name: body
+  description: The body should contain the data of product
+  in: body
+  required: true
+  schema:
+    type: object
+    required:
+      - "product_name"
+      - "cost"
+      - "producer"
+      - "category_id"
+    properties:
+      product_name:
+        type: "string"
+        example: "product_name"      
+      cost:
+        type: "integer"
+        example: "1"   
+      producer:
+        type: "string"
+        example: "producer"   
+      category_id:
+        type: "string"
+        example: "category_id"      
+
+responses:
+  201:
+    description: When a product was successfully added
+  400:
+    description: Fails to add product due to bad request data
+  401:
+    description: U have to be login as Admin
+  409:
+    description: When a category doesn't exist
