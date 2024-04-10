@@ -10,3 +10,4 @@ validators
 pymysql
 email_validator
 cryptography
+gunicorn

@@ -28,6 +28,12 @@ def api_add_to_cart():
     for product in request.json['products']:
         product_id = product.get('product_id')
         quantity = product.get('quantity')
+        
+        try:
+            quantity = int(quantity)
+        except ValueError:
+            return jsonify({'error' : 'The quantity of product has to be integer'}), HTTP_400_BAD_REQUEST
+        
         if product_id is None or quantity is None:
             return jsonify({'error' : "Missing or invalid data" }), HTTP_400_BAD_REQUEST
         

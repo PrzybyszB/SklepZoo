@@ -3,6 +3,7 @@ from flask_login import current_user
 from flasgger import swag_from
 from src.constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_200_OK
 from src.db_models import db, Customer, Orders, Orders_detail, Products
+from src.webforms import SearchForm
 import validators
 
 
@@ -138,3 +139,23 @@ def api_summary():
                         'total_cost' : order.total_cost
                      }}), HTTP_200_OK
 
+
+
+# @api_views_blueprint.post("/api/search")
+# def search():
+#     product = request.json['searched']
+    
+#     if not product or 'searched' not in product:
+#         return jsonify({'error': 'Missing or invalid data in request'}), HTTP_400_BAD_REQUEST
+    
+#     product_searched = product['searched']
+#     products = Products.query.filter(Products.product_name.like('%' + product_searched + '%')).order_by(Products.product_name).all()
+
+#     products_list = []
+#     for product in products:
+#         product_dict = {
+#             'id': product.product_id,
+#             'name': product.product_name,
+#             'producer': product.producer,
+#             'cost': product.cost}
+#     return jsonify({'searched': product_searched, 'products': products_list}), HTTP_200_OK

@@ -2,18 +2,18 @@
 import mysql.connector
 
 #SELF
-mydb = mysql.connector.connect(
-    host="localhost",
-    user="pbartosz",
-    passwd="1q2w3e4r5t6Y."
-)
+# mydb = mysql.connector.connect(
+#     host="mysq",
+#     user="pbartosz",
+#     passwd="1q2w3e4r5t6Y."
+# )
 
 #MySQL Docker 
-# mydb = mysql.connector.connect(
-#     host="mysql",
-#     user="root",
-#     passwd="123A."
-# )
+mydb = mysql.connector.connect(
+    host="mysql",
+    user="root",
+    passwd="123A."
+)
 
 
 my_cursor = mydb.cursor()

@@ -64,3 +64,8 @@ class CustomerForm(FlaskForm):
     last_name =StringField("Nazwisko", validators=[DataRequired()]) 
     address = StringField("Adres", validators=[DataRequired()]) 
     submit = SubmitField("Dalej")
+
+
+class SearchForm(FlaskForm):
+    searched = StringField("Nazwa produktu", validators=[DataRequired()])
+    submit = SubmitField("Wyszukaj")

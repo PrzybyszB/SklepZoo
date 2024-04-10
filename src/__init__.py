@@ -17,13 +17,18 @@ from src.api.api_product_blueprint import api_product_blueprint
 from src.api.api_payment_blueprint import api_payment_blueprint
 from src.api.api_views_blueprint import api_views_blueprint
 from src.db_models import db, init_db, Users, Category, Products, Orders, Orders_detail
+from src.webforms import SearchForm
 from src.config.config import Config
 from src.config.swagger import template, swagger_config
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def create_app(config_class=Config):
     # Initialize flask app
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+    )
     
     # Initialize swagger
 
@@ -79,6 +84,11 @@ def create_app(config_class=Config):
         if categories:
             return {'categories': categories}
         return {'categories': []}
+    
+    @app.context_processor
+    def base():
+        form = SearchForm()
+        return dict(form=form)
 
     @app.before_request
     def make_session_permanent():
