@@ -13,6 +13,8 @@ product_blueprint = Blueprint('product_blueprint', __name__, static_folder="stat
 @product_blueprint.route('/add_category' ,methods=['GET', 'POST'])
 @login_required
 def add_category():
+    
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     id = current_user.user_id
     if id == 1:
         category_name = None
@@ -20,15 +22,21 @@ def add_category():
         if form.validate_on_submit():
             check_exist_category =  Category.query.filter_by(category_name=form.category_name.data).first()
             if check_exist_category is None:
+                
+                # If the category does not exist, add it to the database.
                 new_category = Category(category_name = form.category_name.data,
                                         category_slug = form.category_slug.data)
                 
                 db.session.add(new_category)
                 db.session.commit()
+            
+            # Reset form fields after submission.
             category_name = form.category_name.data
             form.category_name.data = ''
             form.category_slug.data = ''
+            
             flash("Category Added Successfully")
+        
         category_list = Category.query.order_by(Category.category_id).all()
         return render_template('add_category.html', 
                             form=form,
@@ -41,6 +49,7 @@ def add_category():
 
 @product_blueprint.route('/category/<category_slug>' ,methods=['GET', 'POST'])
 def category(category_slug):
+    
     category = Category.query.filter_by(category_slug = category_slug).first()
     category_list = Products.query.filter_by(category_id = category.category_id, deleted_at=None )
     category_name = category.category_name
@@ -52,14 +61,16 @@ def category(category_slug):
 @product_blueprint.route('/add-product' ,methods=['GET', 'POST'])
 @login_required
 def add_product():
+    
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     id = current_user.user_id
     if id == 1:
-        # category_id = Products.category_id
         product_name = None
         form = ProductForm()
         if form.validate_on_submit():
             product = Products.query.filter_by(product_name=form.product_name.data, deleted_at=None).first()
             if product is None:
+                # If the product does not exist, add it to the database.
                 product = Products(product_name=form.product_name.data,
                                 cost = form.cost.data,
                                     producer = form.producer.data,
@@ -67,12 +78,16 @@ def add_product():
                 
                 db.session.add(product)
                 db.session.commit()
+
+            # Reset form fields after submission.
             product_name = form.product_name.data
             form.product_name.data = ''
             form.cost.data = ''
             form.producer.data = ''
             form.category_id.data = ''
             flash("Product Added Successfully")
+
+        # Retrieve all active products.
         our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added)
         return render_template('add_product.html', 
                             form=form,
@@ -85,6 +100,7 @@ def add_product():
 
 @product_blueprint.route('/products', methods=['GET', 'POST'])
 def products():
+    
     our_products = Products.query.filter(Products.deleted_at == None).order_by(Products.data_added)
     return render_template('products.html', 
                            our_products=our_products)
@@ -92,10 +108,10 @@ def products():
 
 @product_blueprint.route('/product/<int:product_id>', methods=['GET', 'POST'])
 def product(product_id):
+    
     form1 = ProductForm()
     form2 = Order_detailForm()
     product = Products.query.get_or_404(product_id)
-    # product = Products(product_id=product_id, product_name='Produkt1', cost=11, producer="producer1", category_id=1)
     
     if request.method == "POST":
         quantity = int(request.form.get('quantity_of_product'))

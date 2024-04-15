@@ -6,6 +6,8 @@ import re
 
 
 cart_blueprint = Blueprint('cart_blueprint', __name__, static_folder="static", template_folder="templates")
+
+# Public key for payment processing.
 public_key = "pk_test_TYooMQauvdEDq54NiTphI7jx"
 
 @cart_blueprint.route('/cart', methods=['GET', 'POST'])
@@ -21,7 +23,7 @@ def update_cart():
     if request.method == "POST":
         cart = session.get('cart', [])
 
-        # Creating group using regex to sort our cart
+        # Creating group using regex to sort our cart.
         pattern = re.compile(r"items\[(\d+)\]\[(quantity|product_id)\]")
         cart_list = {}
         for key in request.form.keys():
@@ -32,7 +34,7 @@ def update_cart():
                     cart_list[index] = {}
                 cart_list[index][match.group(2)] = ((key, request.form[key]))
         
-        # Extract quantity of product from cart and change a value to quantity from sorting request.form
+        # Extract quantity of product from cart and change a value to quantity from sorting request.form.
         for index, product_details_items in sorted(cart_list.items(), key=lambda x: int(x[0])):
             product_details = [product_details_items['quantity'], product_details_items['product_id']]
             for quantity in product_details:
@@ -40,7 +42,7 @@ def update_cart():
                 if quantity != cart[int(index)]['quantity']:
                     cart[int(index)]['quantity'] = quantity
         
-        #Saving up to date cart in session
+        # Saving up to date cart in session.
         session['cart'] = cart
         session.modified = True
         return redirect(url_for('cart_blueprint.cart'))
@@ -54,6 +56,7 @@ def order():
     customer_form = CustomerForm()
     cart = session.get('cart')
     user_email = None
+    
     if request.method == "POST" or current_user.is_authenticated:
         if current_user.is_authenticated:
             user_email =  current_user.email
@@ -62,6 +65,7 @@ def order():
         if user_email:
             return redirect(url_for("cart_blueprint.orders_detail", user_email=user_email))
         elif customer_form.validate_on_submit():
+            # Create a new customer.
             customer_user = Customer(email = customer_form.email.data,
                                   name = customer_form.name.data,
                                   last_name = customer_form.last_name.data,
@@ -135,6 +139,7 @@ def orders_detail(user_email):
 
 @cart_blueprint.route('/summary/<int:order_id>', methods=["GET", "POST"])
 def summary(order_id):
+    
     cart = session.get('cart')
     order = Orders.query.get_or_404(order_id)
     total_cost = order.total_cost

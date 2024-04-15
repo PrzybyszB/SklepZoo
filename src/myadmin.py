@@ -2,7 +2,7 @@ from flask import redirect, url_for, flash
 from flask_admin import AdminIndexView, expose
 from flask_login import current_user
 
-
+# Example login
 # Name : Admin
 # Username : Admin
 # Last_name : Admin

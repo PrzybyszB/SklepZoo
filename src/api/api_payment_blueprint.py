@@ -11,7 +11,8 @@ from src.constant.https_status_code import HTTP_400_BAD_REQUEST, HTTP_409_CONFLI
 api_payment_blueprint = Blueprint('api_payment_blueprint', __name__, static_folder="static", template_folder="templates")
 
 
-# TODO BEZ AJAXA ciezko ? 
+# TODO WIP payments.
+
 # @app.post('/api/payment/<int:order_id>')
 # def api_payment(order_id):
 #     order_id = request.json['order_id']

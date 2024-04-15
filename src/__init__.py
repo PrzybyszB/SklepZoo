@@ -29,9 +29,8 @@ def create_app(config_class=Config):
     app.wsgi_app = ProxyFix(
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
     )
-    
-    # Initialize swagger
 
+    # Initialize swagger
     swagger = Swagger(app, template=template, config=swagger_config)
 
     # Config
@@ -85,19 +84,17 @@ def create_app(config_class=Config):
             return {'categories': categories}
         return {'categories': []}
     
+    # Search 
     @app.context_processor
     def base():
         form = SearchForm()
         return dict(form=form)
 
+    # Session time 
     @app.before_request
     def make_session_permanent():
         session.permanent = True
         app.permanent_session_lifetime = timedelta(minutes=1440)
-
-    # Connecting first time with database
-    # with app.app_context():
-    #     db.create_all()
 
     return app
 

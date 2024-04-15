@@ -14,7 +14,7 @@ def add_user():
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user is None:
-            # Hash password
+            # Hashing password before storing it.
             hashed_pw = generate_password_hash(form.password_hash.data, "pbkdf2:sha256")
             user = Users(name=form.name.data,
                          username = form.username.data, 
@@ -25,6 +25,8 @@ def add_user():
             
             db.session.add(user)
             db.session.commit()
+
+        # Reset form fields after submission.
         name = form.name.data
         form.name.data = ''
         form.last_name.data = ''
@@ -32,7 +34,9 @@ def add_user():
         form.email.data = ''
         form.password_hash.data = ''
         form.address.data = ''
+
         flash("User Added Successfully")
+
     our_users = Users.query.order_by(Users.data_added)
     return render_template("add_user.html", 
                            form=form,
@@ -47,7 +51,7 @@ def login():
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data).first()
         if user:
-            #check the hash
+            # Check if the password matches the hashed password stored in the database.
             if check_password_hash(user.password_hash, form.password.data):
                 login_user(user)
                 flash("Login successfull")
@@ -75,14 +79,18 @@ def dashboard():
     form = UserForm()
     id = current_user.user_id
     user_to_update = Users.query.get_or_404(id)
+    
     if request.method == "POST":
         user_to_update.name = request.form['name']
         user_to_update.last_name = request.form['last_name']
         user_to_update.username = request.form['username']
         user_to_update.address = request.form['address']
+        
         try:
             db.session.commit()
+
             flash("Users Updated Successfully")
+
             return render_template('dashboard.html',
                                    form=form,
                                    user_to_update = user_to_update)
@@ -101,6 +109,8 @@ def dashboard():
 @user_blueprint.route('/user-list', methods=['GET', 'POST'])
 @login_required
 def user_list():
+
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     id = current_user.user_id
     if id == 1:
         our_users = Users.query.order_by(Users.email)
@@ -114,6 +124,7 @@ def user_list():
 @user_blueprint.route('/update', methods=['GET', 'POST'])
 @login_required
 def update():
+    
     form = UserForm()
     user_id = current_user.user_id
     user_to_update = Users.query.get_or_404(user_id)

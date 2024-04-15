@@ -19,7 +19,9 @@ def api_home():
 
 @api_views_blueprint.post('/api/customer_creator')
 def api_customer_creator():
+    
     if not current_user.is_authenticated:
+        # Extract customer information from request JSON.
         name = request.json['name']
         last_name = request.json['last_name']
         email = request.json['email']
@@ -46,14 +48,20 @@ def api_customer_creator():
 
 @api_views_blueprint.post('/api/order')
 def api_order():
+    # Initialize user_id and customer_id variables.
     user_id = None
     customer_id = None
 
     if current_user.is_authenticated:
         user_id = current_user.user_id
+
     else:
         customer_id = request.json['customer_id']
+
+        # Check if the customer exists in the database
         customer = Customer.query.get(customer_id)
+
+        # Check if the cart is empty
         if customer is None:
             return jsonify({'error' : "That customer doesn't exist"}), HTTP_400_BAD_REQUEST
     
@@ -61,6 +69,7 @@ def api_order():
     if cart is None:
         return jsonify({'error' : "Your cart is empty"}), HTTP_200_OK
     
+    # Check if the cart exists but is not initialized properly
     if cart is not cart:
         return jsonify({'error' : "Cart doesn't exist"}), HTTP_400_BAD_REQUEST
     
@@ -80,10 +89,15 @@ def api_order():
 @api_views_blueprint.post('/api/order_detail')
 def api_order_detail():
     cart = session.get('cart')
+
     products_cost =[]
     product_in_cart = {}
     total_cost = 0
+
+    # Retrieve order_id from request JSON
     order_id = request.json['order_id']
+
+    # Get the order from the database
     order = Orders.query.get(order_id)
 
     for item in cart:
@@ -93,7 +107,8 @@ def api_order_detail():
         product_id = int(item['product_id'])
         quantity = int(item['quantity'])
         product = Products.query.get(product_id)
-
+        
+        # If the product exists, calculate the total cost for the product and update order details
         if product:
             total_product_cost = product.cost * quantity
             products_cost.append(total_product_cost)
@@ -104,12 +119,14 @@ def api_order_detail():
                             quantity_of_product=quantity)
             
             db.session.add(order_detail)
+
+            # Store product details in a dictionary for response
             product_in_cart[product_id] = {
                 'ilosc': quantity,
                 'cena_za_produkt': product.cost,
                 'suma': total_product_cost}
             
-
+    # Calculate total cost of the order
     total_cost = sum(products_cost)
     order.total_cost = total_cost
     db.session.commit()
@@ -126,6 +143,7 @@ def api_order_detail():
 
 @api_views_blueprint.get('/api/summary')
 def api_summary():
+    
     cart = session.get('cart')
     order_id = request.json['order_id']
     order = Orders.query.get(order_id)
@@ -139,23 +157,3 @@ def api_summary():
                         'total_cost' : order.total_cost
                      }}), HTTP_200_OK
 
-
-
-# @api_views_blueprint.post("/api/search")
-# def search():
-#     product = request.json['searched']
-    
-#     if not product or 'searched' not in product:
-#         return jsonify({'error': 'Missing or invalid data in request'}), HTTP_400_BAD_REQUEST
-    
-#     product_searched = product['searched']
-#     products = Products.query.filter(Products.product_name.like('%' + product_searched + '%')).order_by(Products.product_name).all()
-
-#     products_list = []
-#     for product in products:
-#         product_dict = {
-#             'id': product.product_id,
-#             'name': product.product_name,
-#             'producer': product.producer,
-#             'cost': product.cost}
-#     return jsonify({'searched': product_searched, 'products': products_list}), HTTP_200_OK

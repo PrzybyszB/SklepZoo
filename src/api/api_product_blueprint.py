@@ -18,17 +18,22 @@ def api_add_category():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
     
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     if current_user.is_authenticated:
         id = current_user.user_id
+        
         if id == 1:
             category_name = request.json['category_name']
             category_slug = request.json['category_slug']
+
             check_exist_category =  Category.query.filter_by(category_name=category_name).first()
+            # Check if the category exist in the database.
             if check_exist_category is None:
                 new_category = Category(category_name = category_name,
                                         category_slug = category_slug)
                 db.session.add(new_category)
                 db.session.commit()
+                
                 return jsonify({
                     'message': 'Category created',
                     'category_name' : category_name,
@@ -45,9 +50,11 @@ def api_add_category():
 def api_delete_category():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
-
+    
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     if current_user.is_authenticated:
         id = current_user.user_id
+        
         if id == 1:
             category_id = request.json['category_id']
             category_to_delete = Category.query.get(category_id)
@@ -55,6 +62,7 @@ def api_delete_category():
             if category_to_delete is None:
                 return jsonify({'error' : f'This category with ID: {category_id} does not exist'}), HTTP_404_NOT_FOUND
             
+            # Checks if there are any products associated with the given category_id. 
             associated_products = Products.query.filter_by(category_id=category_id).first()
             if associated_products:
                 return jsonify({'error': 'Cannot delete category because there are associated products'}), HTTP_409_CONFLICT
@@ -89,15 +97,18 @@ def api_category_list():
 def api_add_product():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
-
+    
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     if current_user.is_authenticated:
         id = current_user.user_id
+        
         if id == 1:
             product_name = request.json['product_name']
             cost = request.json['cost']
             producer = request.json['producer']
             category_id = request.json['category_id']
             
+            # Checks if the category exist.
             if Category.query.filter_by(category_id=category_id).first() is None:
                 return jsonify({'error': "This category doesn't exist"}), HTTP_409_CONFLICT
             
@@ -109,6 +120,7 @@ def api_add_product():
                                         category_id = category_id)
                 db.session.add(new_product)
                 db.session.commit()
+                
                 return jsonify({
                     'message': 'Product added',
                     'product' : {
@@ -118,6 +130,9 @@ def api_add_product():
                                 "category id" : category_id
                     }
                 }),  HTTP_201_CREATED
+            
+            return jsonify({'error' : " This product is already exist"}), HTTP_409_CONFLICT 
+        
         else:
             return jsonify({'error' : "You are not Admin"}), HTTP_401_UNAUTHORIZED 
 
@@ -128,14 +143,19 @@ def api_delete_product():
     if not current_user.is_authenticated:
         return jsonify({'error' : "Oops u are not login as Admin"}), HTTP_401_UNAUTHORIZED 
 
+    # Check if the current user is user_id = 1. Admin should be user with user_id = 1.
     if current_user.is_authenticated:
         id = current_user.user_id
+        
         if id == 1:
             product_id = request.json['product_id']
             product_to_delete = Products.query.filter_by(product_id=product_id, deleted_at=None).first()
+            
             if product_to_delete is None:
                 return jsonify({'error' : f'This product with ID: {product_id} does not exist'}), HTTP_404_NOT_FOUND
-            product_to_delete.deleted_at = datetime.utcnow()
+            
+            # Soft delete.
+            product_to_delete.deleted_at = datetime.now()
             db.session.commit()
 
             return jsonify({'response' : "Product was deleted"}), HTTP_200_OK
@@ -169,8 +189,10 @@ def api_products():
 def api_product():
     product_id = request.args.get('product_id')
     product = Products.query.filter_by(product_id=product_id, deleted_at=None).first()
+    
     if product is None:
         return jsonify({ 'error' : f'There is no product on product id {product_id}'}), HTTP_404_NOT_FOUND 
+    
     else:
         return jsonify({
                     'product info': {

@@ -17,7 +17,7 @@ class Users(db.Model, UserMixin):
     last_name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
     address = db.Column(db.String(120), nullable=False)
-    data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    data_added = db.Column(db.DateTime, default=datetime.now)
     orders_relationship = db.relationship('Orders', backref='users', lazy=True)
 
 
@@ -75,7 +75,7 @@ class Products(db.Model):
     product_name = db.Column(db.String(200), nullable=False, unique=True)
     cost = db.Column(db.Integer, nullable=False)
     producer = db.Column(db.String(200), nullable=False)
-    data_added = db.Column(db.DateTime, default=datetime.utcnow)
+    data_added = db.Column(db.DateTime, default=datetime.now)
     deleted_at = db.Column(db.DateTime)
     # TODO category_name = db.Column(db.Integer, db.ForeignKey('category.category_name'), nullable=False,)
     category_id = db.Column(db.Integer, db.ForeignKey('category.category_id'), nullable=False,)
@@ -85,7 +85,7 @@ class Orders(db.Model):
     order_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=True,)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer.customer_id'), nullable=True,)
-    order_data = db.Column(db.DateTime, default=datetime.utcnow)
+    order_data = db.Column(db.DateTime, default=datetime.now)
     total_cost = db.Column(db.Integer, nullable=False)
     order_detail_relationship = db.relationship('Orders_detail', backref='orders', lazy=True)
 
