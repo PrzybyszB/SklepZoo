@@ -1,7 +1,7 @@
 from flask import current_app
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, SelectField, IntegerField
-from wtforms.validators import DataRequired, EqualTo, NumberRange, Email
+from wtforms.validators import DataRequired, EqualTo, NumberRange, Email, Length
 from src.db_models import Category
 
 
@@ -15,11 +15,11 @@ class LoginForm(FlaskForm):
 
 
 class UserForm(FlaskForm):
-    name =  StringField("Imię", validators=[DataRequired()])
-    username = StringField("Username", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email")])
-    last_name = StringField("Nazwisko", validators=[DataRequired()])
-    address = StringField("Adres", validators=[DataRequired()])
+    name =  StringField("Imię", validators=[DataRequired(), Length(max=200)])
+    username = StringField("Username", validators=[DataRequired(), Length(max=20)])
+    email = StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email"), Length(max=120)])
+    last_name = StringField("Nazwisko", validators=[DataRequired(), Length(max=200)])
+    address = StringField("Adres", validators=[DataRequired(), Length(max=120)])
     password_hash = PasswordField("Hasło", validators=[DataRequired(), EqualTo('password_hash2', message='Hasła nie są takie same!')])
     password_hash2 = PasswordField("Potwierdź hasło", validators=[DataRequired()])
     submit = SubmitField("Submit")
@@ -32,9 +32,9 @@ class PasswordForm(FlaskForm):
 
 
 class ProductForm(FlaskForm):
-    product_name = StringField("Nazwa Produktu", validators=[DataRequired()])
+    product_name = StringField("Nazwa Produktu", validators=[DataRequired(), Length(max=200)])
     cost = IntegerField("Koszt", validators=[DataRequired()])
-    producer = StringField("Producent", validators=[DataRequired()])
+    producer = StringField("Producent", validators=[DataRequired(), Length(max=200)])
     submit = SubmitField("Dodaj Produkt")
     
     # Define category choices as loop choices=('category_id', 'category_name'), with current_app.app_context() to work in apllication context
@@ -48,8 +48,8 @@ class ProductForm(FlaskForm):
 
 
 class CategoryForm(FlaskForm):
-    category_name = StringField("Nazwa Kategorii", validators=[DataRequired()])
-    category_slug = StringField("Slug Kategorii", validators=[DataRequired()])
+    category_name = StringField("Nazwa Kategorii", validators=[DataRequired(), Length(max=50)])
+    category_slug = StringField("Slug Kategorii", validators=[DataRequired(), Length(max=50)])
     submit = SubmitField("Dodaj Kategorie")
 
 
@@ -59,10 +59,10 @@ class Order_detailForm(FlaskForm):
 
 
 class CustomerForm(FlaskForm):
-    email =  StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email")]) 
-    name = StringField("Imię", validators=[DataRequired()]) 
-    last_name =StringField("Nazwisko", validators=[DataRequired()]) 
-    address = StringField("Adres", validators=[DataRequired()]) 
+    email =  StringField("Email", validators=[DataRequired(), Email(message="Niepoprawny email"), Length(max=120)]) 
+    name = StringField("Imię", validators=[DataRequired(), Length(max=120)]) 
+    last_name =StringField("Nazwisko", validators=[DataRequired(), Length(max=120)]) 
+    address = StringField("Adres", validators=[DataRequired(), Length(max=120)]) 
     submit = SubmitField("Dalej")
 
 
