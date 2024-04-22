@@ -28,7 +28,7 @@ SklepZoo is an e-commerce application written in Python using the Flask framewor
     docker-compose up --build
     ```
 
-4. Open a web browser and go to `http://127.0.0.1:80` to start using the application.
+4. Open a web browser and go to `http://127.0.0.1` to start using the application.
 
 ## Features
 
